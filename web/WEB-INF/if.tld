@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<taglib version="2.1" xmlns="http://java.sun.com/xml/ns/j2ee"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee
+        web-jsptaglibrary_2_1.xsd">
+    <tlib-version>1.0</tlib-version>
+    <short-name>j</short-name>
+    <uri>/WEB-INF/if.tld</uri>
+    <tag>
+        <name>if</name>
+        <tag-class>com.caxerx.tag.IfTag</tag-class>
+        <attribute>
+            <name>condition</name>
+            <required>true</required>
+            <rtexprvalue>true</rtexprvalue>
+            <type>boolean</type>
+        </attribute>
+        <body-content>scriptless</body-content>
+    </tag>
+</taglib>
