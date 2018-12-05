@@ -1,18 +1,18 @@
 package com.caxerx.db;
 
 
+import com.caxerx.bean.Restaurant;
 import com.caxerx.bean.User;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 public class UserDb {
-    private static final String TABLE_NAME = "User";
 
     private DatabaseConnectionPool pool;
 
@@ -21,14 +21,21 @@ public class UserDb {
     }
 
     public User findById(int id) {
-        try (Connection connection = pool.getConnection(); PreparedStatement statement = connection.prepareStatement(SqlBuilder.queryById(TABLE_NAME))) {
+        try (Connection connection = pool.getConnection(); PreparedStatement statement = connection.prepareStatement(SqlBuilder.queryById("User"))) {
             statement.setInt(1, id);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
                     String username = resultSet.getString("username");
                     String password = resultSet.getString("password");
-                    String type = resultSet.getString("type");
-                    return new User(id, username, password, type);
+                    String firstName = resultSet.getString("firstName");
+                    String lastName = resultSet.getString("lastName");
+                    String email = resultSet.getString("email");
+                    Date dateOfBirth = resultSet.getDate("dateOfBirth");
+                    int type = resultSet.getInt("type");
+
+                    User user = new User(id, username, password, firstName, lastName, email, dateOfBirth, type);
+
+                    return user;
                 }
             }
         } catch (SQLException e) {
@@ -37,8 +44,9 @@ public class UserDb {
         return null;
     }
 
+
     public User getValidUser(String username, String password) {
-        try (Connection connection = pool.getConnection(); PreparedStatement statement = connection.prepareStatement(SqlBuilder.queryByColumn(TABLE_NAME, Arrays.asList("username", "password")))) {
+        try (Connection connection = pool.getConnection(); PreparedStatement statement = connection.prepareStatement(SqlBuilder.queryByColumn("User", "username", "password"))) {
             statement.setString(1, username);
             statement.setString(2, password);
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -46,8 +54,12 @@ public class UserDb {
                     int obj_id = resultSet.getInt("id");
                     String obj_username = resultSet.getString("username");
                     String obj_password = resultSet.getString("password");
-                    String obj_type = resultSet.getString("type");
-                    return new User(obj_id, obj_username, obj_password, obj_type);
+                    String obj_firstName = resultSet.getString("firstName");
+                    String obj_lastName = resultSet.getString("lastName");
+                    String obj_email = resultSet.getString("email");
+                    Date obj_dateOfBirth = resultSet.getDate("dateOfBirth");
+                    int obj_type = resultSet.getInt("type");
+                    return new User(obj_id, obj_username, obj_password, obj_firstName, obj_lastName, obj_email, obj_dateOfBirth, obj_type);
                 }
             }
         } catch (SQLException e) {

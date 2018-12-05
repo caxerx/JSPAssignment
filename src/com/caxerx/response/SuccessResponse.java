@@ -1,11 +1,9 @@
 package com.caxerx.response;
 
-import java.io.Serializable;
-
 public class SuccessResponse extends Response {
-    Serializable content;
+    Object content;
 
-    public SuccessResponse(Serializable content) {
+    public SuccessResponse(Object content) {
         super(true);
         this.content = content;
     }

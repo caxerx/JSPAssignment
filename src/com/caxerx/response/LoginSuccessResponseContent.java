@@ -6,7 +6,7 @@ import java.io.Serializable;
 
 public class LoginSuccessResponseContent implements Serializable {
     private String username;
-    private String type;
+    private int type;
 
     public LoginSuccessResponseContent(User user) {
         this.username = user.getUsername();

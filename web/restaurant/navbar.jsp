@@ -17,10 +17,19 @@
     }
 
 %>
-<v-toolbar app dark class="primary">
+<v-toolbar app dark class="primary" clipped-left style="z-index: 100">
     <v-toolbar-title>
         <%=request.getServletContext().getInitParameter("application-name")%>
     </v-toolbar-title>
+
+    <div style="width:250px; margin-top:10px" class="ml-2">
+        <v-overflow-btn
+                :items="restaurantList"
+                label="Manage Restaurant"
+                v-model="selectedRestaurant"
+                item-text="idName"
+        ></v-overflow-btn>
+    </div>
 
     <v-spacer></v-spacer>
 

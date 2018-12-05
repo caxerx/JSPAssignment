@@ -104,7 +104,7 @@
             login() {
                 axios.post("./api/login", this.loginInfo).then(resp => {
                     if (resp.data.success) {
-                        window.location.href = "./index.jsp"
+                        window.location.href = "/index.jsp"
                     } else {
                         this.failedMessage = resp.data.errorMessage;
                         this.loginFailed = 0;
