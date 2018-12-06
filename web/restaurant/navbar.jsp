@@ -17,6 +17,7 @@
     }
 
 %>
+
 <v-toolbar app dark class="primary" clipped-left style="z-index: 100">
     <v-toolbar-title>
         <%=request.getServletContext().getInitParameter("application-name")%>

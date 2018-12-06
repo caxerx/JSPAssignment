@@ -16,7 +16,7 @@ public class MenuDb {
 
     public MenuDb(DatabaseConnectionPool pool) {
         this.pool = pool;
-        restaurantDb = new RestaurantDb(pool);
+        restaurantDb = RestaurantDb.getInstance(pool);
     }
 
     public int insert(int userId, int restaurantId, AddMenuRequest request) {

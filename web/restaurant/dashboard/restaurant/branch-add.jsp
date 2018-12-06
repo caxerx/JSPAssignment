@@ -91,6 +91,14 @@
                 </v-menu>
             </v-flex>
 
+
+            <v-flex>
+                <v-text-field prepend-icon="phone" label="Telephone"
+                            :rules="[v => !!v || 'You must enter the phone number']"
+                            v-model="addBranchForm.telephone"></v-text-field>
+            </v-flex>
+
+
             <v-flex>
                 <v-textarea prepend-icon="home" label="Address"
                             :rules="[v => !!v || 'You must enter the address']"
@@ -145,6 +153,6 @@
         <v-divider></v-divider>
     </v-form>
     <v-layout justify-end fill-width>
-        <v-btn flat @click="createRestaurant" :disabled="disableCreateButton">Create</v-btn>
+        <v-btn flat @click="createBranch" :disabled="disableCreateButton">Create</v-btn>
     </v-layout>
 </v-card>

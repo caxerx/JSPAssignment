@@ -1,10 +1,9 @@
 package com.caxerx.db;
 
-import com.caxerx.bean.Menu;
-import com.caxerx.bean.Restaurant;
-import com.caxerx.bean.Tag;
+import com.caxerx.bean.*;
 import com.caxerx.request.AddBranchRequest;
 
+import javax.servlet.ServletContext;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,14 +11,30 @@ import java.util.List;
 public class BranchDb {
     private DatabaseConnectionPool pool;
     private RestaurantDb restaurantDb;
+    private static BranchDb instance;
 
-    public BranchDb(DatabaseConnectionPool pool) {
+    public static BranchDb getInstance(DatabaseConnectionPool pool) {
+        if (instance == null) {
+            instance = new BranchDb(pool);
+        }
+        return instance;
+    }
+
+
+    private RestaurantDb getRestaurantDb() {
+        if (restaurantDb == null) {
+            restaurantDb = RestaurantDb.getInstance(pool);
+        }
+        return restaurantDb;
+    }
+
+
+    private BranchDb(DatabaseConnectionPool pool) {
         this.pool = pool;
-        restaurantDb = new RestaurantDb(pool);
     }
 
     public int insert(int userId, int restaurantId, AddBranchRequest request) {
-        Restaurant restaurant = restaurantDb.findById(restaurantId);
+        Restaurant restaurant = getRestaurantDb().findById(restaurantId);
         if (restaurant == null) {
             return -1;
         }
@@ -66,17 +81,17 @@ public class BranchDb {
     }
 
 
-    public List<Tag> getMenuTag(int menuId) {
-        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.queryByColumnWithJoin("MenuTag", "INNER JOIN Tag ON MenuTag.tagId = Tag.id", "menuId"))) {
-            stmt.setInt(1, menuId);
-            List<Tag> tags = new ArrayList<>();
+    public List<District> getDeliveryDistrict(int branchId) {
+        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.queryByColumnWithJoin("BranchDeliveryDistrict", "INNER JOIN District ON BranchDeliveryDistrict.districtId = District.id", "branchId"))) {
+            stmt.setInt(1, branchId);
+            List<District> districts = new ArrayList<>();
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    int tagId = rs.getInt("tagId");
+                    int district = rs.getInt("districtId");
                     String tagName = rs.getString("name");
-                    tags.add(new Tag(tagId, tagName));
+                    districts.add(new District(district, tagName));
                 }
-                return tags;
+                return districts;
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -84,22 +99,24 @@ public class BranchDb {
         return null;
     }
 
-    public List<Menu> findAll() {
-        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.queryAll("Menu"))) {
+    public List<Branch> findAll() {
+        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.queryAll("Branch"))) {
             try (ResultSet rs = stmt.executeQuery()) {
-                List<Menu> menus = new ArrayList<>();
+                List<Branch> branches = new ArrayList<>();
                 while (rs.next()) {
                     int id = rs.getInt("id");
                     int restaurantId = rs.getInt("restaurantId");
-                    String title = rs.getString("title");
-                    Date startDate = rs.getDate("startTime");
-                    Date endDate = rs.getDate("endTime");
-                    boolean showMenu = rs.getBoolean("showMenu");
-                    Menu menu = new Menu(id, restaurantId, title, startDate, endDate, showMenu);
-                    menu.setTags(getMenuTag(id));
-                    menus.add(menu);
+                    String name = rs.getString("name");
+                    int districtId = rs.getInt("districtId");
+                    String address = rs.getString("address");
+                    String telephone = rs.getString("telephone");
+                    String openTime = rs.getString("openTime");
+
+                    Branch branch = new Branch(id, restaurantId, districtId, name, address, telephone, openTime);
+                    branch.setDeliveryDistrict(getDeliveryDistrict(id));
+                    branches.add(branch);
                 }
-                return menus;
+                return branches;
             }
 
         } catch (SQLException e) {
@@ -108,22 +125,24 @@ public class BranchDb {
         return null;
     }
 
-    public List<Menu> findRestaurantMenu(int restaurantId) {
-        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.queryByColumn("Menu", "restaurantId"))) {
+    public List<Branch> findRestaurantBranch(int restaurantId) {
+        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.queryByColumn("Branch", "restaurantId"))) {
             stmt.setInt(1, restaurantId);
             try (ResultSet rs = stmt.executeQuery()) {
-                List<Menu> menus = new ArrayList<>();
+                List<Branch> branches = new ArrayList<>();
                 while (rs.next()) {
                     int id = rs.getInt("id");
-                    String title = rs.getString("title");
-                    Date startDate = rs.getDate("startTime");
-                    Date endDate = rs.getDate("endTime");
-                    boolean showMenu = rs.getBoolean("showMenu");
-                    Menu menu = new Menu(id, restaurantId, title, startDate, endDate, showMenu);
-                    menu.setTags(getMenuTag(id));
-                    menus.add(menu);
+                    String name = rs.getString("name");
+                    int districtId = rs.getInt("districtId");
+                    String address = rs.getString("address");
+                    String telephone = rs.getString("telephone");
+                    String openTime = rs.getString("openTime");
+
+                    Branch branch = new Branch(id, restaurantId, districtId, name, address, telephone, openTime);
+                    branch.setDeliveryDistrict(getDeliveryDistrict(id));
+                    branches.add(branch);
                 }
-                return menus;
+                return branches;
             }
 
         } catch (SQLException e) {
@@ -132,19 +151,22 @@ public class BranchDb {
         return null;
     }
 
-    public Menu findById(int menuId) {
-        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.queryById("Menu"))) {
-            stmt.setInt(1, menuId);
+
+    public Branch findById(int id) {
+        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.queryById("Branch"))) {
+            stmt.setInt(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     int restaurantId = rs.getInt("restaurantId");
-                    String title = rs.getString("title");
-                    Date startDate = rs.getDate("startTime");
-                    Date endDate = rs.getDate("endTime");
-                    boolean showMenu = rs.getBoolean("showMenu");
-                    Menu menu = new Menu(menuId, restaurantId, title, startDate, endDate, showMenu);
-                    menu.setTags(getMenuTag(menuId));
-                    return menu;
+                    String name = rs.getString("name");
+                    int districtId = rs.getInt("districtId");
+                    String address = rs.getString("address");
+                    String telephone = rs.getString("telephone");
+                    String openTime = rs.getString("openTime");
+
+                    Branch branch = new Branch(id, restaurantId, districtId, name, address, telephone, openTime);
+                    branch.setDeliveryDistrict(getDeliveryDistrict(id));
+                    return branch;
                 }
             }
 
@@ -153,4 +175,5 @@ public class BranchDb {
         }
         return null;
     }
+
 }

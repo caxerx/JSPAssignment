@@ -2,15 +2,15 @@
 <html>
 
 <head>
-    <link href='https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons' rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
     <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js "></script>
     <script src="https://cdn.jsdelivr.net/npm/moment@2.22.2/moment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vuetify@1.3.9/dist/vuetify.js "></script>
     <script src="https://cdn.jsdelivr.net/npm/axios@0.18.0/dist/axios.js"></script>
-</head>
+    <link href='https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons' rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet">
 
+</head>
 
 <body>
 <div id="app">
@@ -34,7 +34,7 @@
                             <v-img :src="restaurantImg" class="black"></v-img>
                         </v-flex>
                         <!-- Restaurant Description -->
-                        <v-flex xs9 class="pl-2 pt-4 pb-2">
+                        <v-flex xs9 class="pl-2 pt-4">
                             <v-layout column>
                                 <!-- Restaurant Name -->
                                 <v-flex>
@@ -193,6 +193,16 @@
 <script>
     new Vue({
         el: '#app',
+        created() {
+            <%
+                String rid = request.getParameter("rid");
+                if(rid==null){
+                    response.sendRedirect("/error/404.jsp");
+                }
+            %>
+
+            let rid = <%=rid%>;
+        },
         data: {
             restaurantImg: '/img/mcdonalds_0.png',
             restaurantName: 'McDonald\'s',

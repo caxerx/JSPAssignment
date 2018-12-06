@@ -61,7 +61,7 @@
                             label="End Show Date"
                             prepend-icon="event"
                             readonly
-                            :rules="[v => v > this.addMenuForm.startDate || 'End date must later than start date']"
+                            :rules="[v => (v == '' || v >= this.addMenuForm.startDate) || 'End date must later than start date']"
                     ></v-text-field>
                     <v-date-picker v-model="addMenuForm.endDate" @input="endDateMenu = false"></v-date-picker>
                 </v-menu>
@@ -166,6 +166,6 @@
         <v-divider></v-divider>
     </v-form>
     <v-layout justify-end fill-width>
-        <v-btn flat @click="createRestaurant" :disabled="disableCreateButton">Create</v-btn>
+        <v-btn flat @click="createMenu" :disabled="disableCreateButton">Create</v-btn>
     </v-layout>
 </v-card>

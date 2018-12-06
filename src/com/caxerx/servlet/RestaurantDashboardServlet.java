@@ -2,10 +2,7 @@ package com.caxerx.servlet;
 
 import com.caxerx.bean.Restaurant;
 import com.caxerx.bean.User;
-import com.caxerx.db.DatabaseConnectionPool;
-import com.caxerx.db.DistrictDb;
-import com.caxerx.db.RestaurantDb;
-import com.caxerx.db.TagDb;
+import com.caxerx.db.*;
 import com.google.gson.Gson;
 
 import javax.servlet.ServletException;
@@ -21,12 +18,17 @@ public class RestaurantDashboardServlet extends HttpServlet {
     private RestaurantDb restaurantDb;
     private Gson gson;
     private DistrictDb districtDb;
+    private MenuDb menuDb;
+    private BranchDb branchDb;
 
     @Override
     public void init() throws ServletException {
-        tagDb = new TagDb(DatabaseConnectionPool.contextInit(getServletContext()));
-        restaurantDb = new RestaurantDb(DatabaseConnectionPool.contextInit(getServletContext()));
-        districtDb = new DistrictDb(DatabaseConnectionPool.contextInit(getServletContext()));
+        DatabaseConnectionPool pool = DatabaseConnectionPool.contextInit(getServletContext());
+        tagDb = new TagDb(pool);
+        restaurantDb = RestaurantDb.getInstance(pool);
+        branchDb = BranchDb.getInstance(pool);
+        districtDb = new DistrictDb(pool);
+        menuDb = new MenuDb(pool);
         gson = new Gson();
     }
 
@@ -41,6 +43,7 @@ public class RestaurantDashboardServlet extends HttpServlet {
         if (action == null) {
             action = "";
         }
+        int rid = -1;
         switch (action) {
             case "add":
                 request.setAttribute("nav", "dash");
@@ -54,21 +57,42 @@ public class RestaurantDashboardServlet extends HttpServlet {
                 request.setAttribute("action", "dashboard/restaurant-list.jsp");
                 break;
             case "addmenu":
-                if (!checkOwner(user, request, response)) {
+                rid = checkOwner(user, request, response);
+                if (rid < 0) {
                     return;
                 }
-
                 request.setAttribute("action", "dashboard/restaurant/menu-add.jsp");
                 request.setAttribute("tags", gson.toJson(tagDb.findAll()));
                 request.setAttribute("actionName", "Add Menu");
                 break;
             case "addbranch":
-                if (!checkOwner(user, request, response)) {
+                rid = checkOwner(user, request, response);
+                if (rid < 0) {
                     return;
                 }
                 request.setAttribute("districts", gson.toJson(districtDb.findAll()));
                 request.setAttribute("action", "dashboard/restaurant/branch-add.jsp");
                 request.setAttribute("actionName", "Add Branch");
+                break;
+            case "listbranch":
+                rid = checkOwner(user, request, response);
+                if (rid < 0) {
+                    return;
+                }
+                request.setAttribute("branch", gson.toJson(branchDb.findRestaurantBranch(rid)));
+                request.setAttribute("districts", gson.toJson(districtDb.findAll()));
+                request.setAttribute("action", "dashboard/restaurant/branch-list.jsp");
+                request.setAttribute("actionName", "Branch List");
+                break;
+            case "listmenu":
+                rid = checkOwner(user, request, response);
+                if (rid < 0) {
+                    return;
+                }
+                request.setAttribute("tags", gson.toJson(tagDb.findAll()));
+                request.setAttribute("menu", gson.toJson(menuDb.findRestaurantMenu(rid)));
+                request.setAttribute("action", "dashboard/restaurant/menu-list.jsp");
+                request.setAttribute("actionName", "Menu List");
                 break;
             default:
                 response.sendRedirect("/error/404.jsp");
@@ -78,26 +102,30 @@ public class RestaurantDashboardServlet extends HttpServlet {
         request.getRequestDispatcher("/restaurant/dashboard.jsp").forward(request, response);
     }
 
-    private boolean checkOwner(User user, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    private int checkOwner(User user, HttpServletRequest request, HttpServletResponse response) throws IOException {
         request.setAttribute("nav", "restaurant");
         String rid = request.getParameter("rid");
         int id;
+        if (rid == null) {
+            response.sendRedirect("/error/404.jsp");
+            return -1;
+        }
         try {
             id = Integer.parseInt(rid);
         } catch (NumberFormatException e) {
             e.printStackTrace();
             response.sendRedirect("/error/500.jsp");
-            return false;
+            return -1;
         }
         if (id <= 0) {
             response.sendRedirect("/error/404.jsp");
-            return false;
+            return -1;
         }
         Restaurant restaurant = restaurantDb.findById(id);
         if (restaurant == null || restaurant.getOwner() != user.getId()) {
             response.sendRedirect("/error/404.jsp");
-            return false;
+            return -1;
         }
-        return true;
+        return restaurant.getId();
     }
 }

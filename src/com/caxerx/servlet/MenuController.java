@@ -35,7 +35,7 @@ public class MenuController extends HttpServlet {
     public void init() throws ServletException {
         pool = DatabaseConnectionPool.contextInit(getServletContext());
         menuDb = new MenuDb(pool);
-        restaurantDb = new RestaurantDb(pool);
+        restaurantDb = RestaurantDb.getInstance(pool);
         gson = new Gson();
     }
 

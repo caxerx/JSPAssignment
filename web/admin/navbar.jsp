@@ -17,7 +17,8 @@
     }
 
 %>
-<v-toolbar app dark class="primary">
+
+<v-toolbar app dark class="primary" clipped-left style="z-index: 100">
     <v-toolbar-title>
         <%=request.getServletContext().getInitParameter("application-name")%>
     </v-toolbar-title>
@@ -35,19 +36,10 @@
             </v-btn>
             </j:if>
 
-            <j:if condition="<%=loggedIn%>">
+            <j:if condition="<%=loggedIn && loggedInAs.getType()==1%>">
                 <v-list>
-                    <v-list-tile @click="href('/restaurant/dashboard?action=list')">
-                        <v-list-tile-title>Restaurant</v-list-tile-title>
-                    </v-list-tile>
-                </v-list>
-            </j:if>
-
-
-            <j:if condition="<%=loggedIn%>">
-                <v-list>
-                    <v-list-tile @click="href('/admin/dashboard?action=userlist')">
-                        <v-list-tile-title>Admin Panel</v-list-tile-title>
+                    <v-list-tile @click="href('/dashboard.jsp')">
+                        <v-list-tile-title>Dashboard</v-list-tile-title>
                     </v-list-tile>
                 </v-list>
             </j:if>

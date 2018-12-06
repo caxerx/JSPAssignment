@@ -1,9 +1,13 @@
 package com.caxerx.servlet;
 
+import com.caxerx.bean.Branch;
+import com.caxerx.bean.Menu;
+import com.caxerx.bean.Restaurant;
 import com.caxerx.bean.User;
 import com.caxerx.db.BranchDb;
 import com.caxerx.db.DatabaseConnectionPool;
 import com.caxerx.db.MenuDb;
+import com.caxerx.db.RestaurantDb;
 import com.caxerx.request.AddBranchRequest;
 import com.caxerx.request.AddMenuRequest;
 import com.caxerx.response.FailIdResponse;
@@ -19,18 +23,21 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.List;
 
 @WebServlet(name = "BranchController", urlPatterns = {"/api/branch"})
 public class BranchController extends HttpServlet {
 
     private DatabaseConnectionPool pool;
     private BranchDb branchDb;
+    private RestaurantDb restaurantDb;
     private Gson gson;
 
     @Override
     public void init() throws ServletException {
         pool = DatabaseConnectionPool.contextInit(getServletContext());
-        branchDb = new BranchDb(pool);
+        restaurantDb = RestaurantDb.getInstance(pool);
+        branchDb = BranchDb.getInstance(pool);
         gson = new Gson();
     }
 
@@ -79,37 +86,74 @@ public class BranchController extends HttpServlet {
     }
 
 
-
-    /*
-
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String id = request.getParameter("id");
+        response.setContentType("application/json");
         PrintWriter out = response.getWriter();
-        int rId = 0;
-        if (id == null) {
-            List<Menu> restaurants = menuDb.findAll();
-            out.print(gson.toJson(new SuccessResponse(restaurants)));
+        String restaurantId = request.getParameter("restaurantId");
+        String id = request.getParameter("id");
+
+        if (id == null && restaurantId == null) {
+            out.print(new FailResponse("Please specify restaurantId or branch(id)"));
             return;
         }
+
+        if (id == null) {
+            id = "-1";
+        }
+
+        if (restaurantId == null) {
+            restaurantId = "-1";
+        }
+
+
+        int parseId = 0;
+        int parseRestaurantId = 0;
+
         try {
-            rId = Integer.parseInt(id);
+            parseId = Integer.parseInt(id);
+            parseRestaurantId = Integer.parseInt(restaurantId);
         } catch (NumberFormatException e) {
-            out.print(new FailResponse("Invalid restaurant id"));
+            out.print(new FailResponse("Invalid branch or restaurant id"));
             response.setStatus(400);
             return;
         }
 
-        Restaurant restaurant = menuDb.findById(rId);
 
-        if (restaurant == null) {
-            out.print(new FailResponse("Restaurant Not Found"));
-            response.setStatus(404);
+        if (parseId > 0) {
+            Branch branch = branchDb.findById(parseId);
+            if (branch == null) {
+                response.setStatus(404);
+                out.print(new FailResponse("branch not found"));
+                return;
+            }
+            out.print(new SuccessResponse(branch));
             return;
         }
 
-        out.print(gson.toJson(restaurant));
+        if (parseRestaurantId > 0) {
+            Restaurant restaurant = restaurantDb.findById(parseRestaurantId);
+
+            if (restaurant == null) {
+                out.print(new FailResponse("Restaurant Not Found"));
+                response.setStatus(404);
+                return;
+            }
+
+            List<Branch> restaurants = branchDb.findRestaurantBranch(parseRestaurantId);
+            if (restaurants == null) {
+                out.print(new FailResponse("Failed to get branch"));
+                response.setStatus(500);
+                return;
+            }
+
+            out.print(new SuccessResponse(restaurants));
+            return;
+
+        }
+
+        out.print(new FailResponse("Failed to get branch"));
+        response.setStatus(500);
     }
 
-    */
 }

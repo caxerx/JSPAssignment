@@ -1,9 +1,11 @@
 package com.caxerx.db;
 
+import com.caxerx.bean.Branch;
 import com.caxerx.bean.Restaurant;
 import com.caxerx.bean.Tag;
 import com.caxerx.request.AddRestaurantRequest;
 
+import javax.servlet.ServletContext;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
@@ -11,9 +13,25 @@ import java.util.List;
 
 public class RestaurantDb {
     private DatabaseConnectionPool pool;
+    private BranchDb branchDb;
+    private static RestaurantDb instance;
 
-    public RestaurantDb(DatabaseConnectionPool pool) {
+    public static RestaurantDb getInstance(DatabaseConnectionPool pool) {
+        if (instance == null) {
+            instance = new RestaurantDb(pool);
+        }
+        return instance;
+    }
+
+    private RestaurantDb(DatabaseConnectionPool pool) {
         this.pool = pool;
+    }
+
+    private BranchDb getBranchDb() {
+        if (branchDb == null) {
+            branchDb = BranchDb.getInstance(pool);
+        }
+        return branchDb;
     }
 
     public List<Restaurant> findAll() {
@@ -52,6 +70,7 @@ public class RestaurantDb {
                     int background = resultSet.getInt("background");
                     Restaurant restaurant = new Restaurant(id, owner, name, logo, background);
                     restaurant.setTags(getRestaurantTag(restaurant.getId()));
+                    restaurant.setBranchs(getBranchDb().findRestaurantBranch(restaurant.getId()));
                     restaurants.add(restaurant);
                 }
                 return restaurants;

@@ -14,12 +14,13 @@ public class User implements Serializable {
     private Date dateOfBirth;
     private int type;
 
+    private Role role;
+
 
     private transient List<Restaurant> favouriteRestaurant;
     private transient List<Menu> favouriteMenu;
     private transient List<Restaurant> likedRestaurant;
     private transient List<Comment> comments;
-
 
 
     public User() {
@@ -34,6 +35,15 @@ public class User implements Serializable {
         this.email = email;
         this.dateOfBirth = dateOfBirth;
         this.type = type;
+    }
+
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
     }
 
     public int getId() {

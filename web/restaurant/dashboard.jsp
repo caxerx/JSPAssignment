@@ -51,11 +51,14 @@
     new Vue({
         el: '#app',
         data: () => ({
+            rid: -1,
             selectedTags: [],
             tagSearch: "",
             tags: [],
             districts: [],
             restaurantList: [],
+            branchList: [],
+            menuList: [],
             breadcrumb: [
                 {
                     text: "Restaurant Management"
@@ -134,10 +137,31 @@
                  out.println("this.restaurantList = JSON.parse(restaurant);");
             %>
 
+            <%--load restaurant from request --%>
+            <%
+                Object branch = request.getAttribute("branch");
+                if(branch!=null){
+                 out.println("let branch = '"+branch+"'");
+                 out.println("this.branchList = JSON.parse(branch);");
+                 }
+            %>
+
+            <%--load restaurant from request --%>
+            <%
+                Object menu = request.getAttribute("menu");
+                if(menu!=null){
+                 out.println("let menu = '"+menu+"'");
+                 out.println("this.menuList = JSON.parse(menu);");
+                 }
+            %>
+
             <%
                 String rid = request.getParameter("rid");
                 if(rid!=null){
-                    out.print("let rid = "+rid);
+                    out.println("let rid = "+rid);
+                    out.println("this.rid = rid;");
+                }else{
+                    out.println("let rid = null");
                 }
             %>
 
@@ -237,7 +261,56 @@
             },
             removeMenuImg(imgId) {
                 this.menuImages.splice(this.menuImages.indexOf(imgId), 1)
-            }
+            },
+            districtName(distId) {
+                return this.districts.find(dist => dist.id == distId).name
+            },
+            createBranch() {
+                if (this.$refs.addBranch.validate()) {
+                    let request = {
+                        "restaurantId": this.rid,
+                        "branchName": this.addBranchForm.branchName,
+                        "district": this.addBranchForm.district,
+                        "openTime": this.addBranchForm.openTime,
+                        "closeTime": this.addBranchForm.closeTime,
+                        "address": this.addBranchForm.address,
+                        "phoneNumber": this.addBranchForm.telephone,
+                        "deliveryDistrict": this.selectedTags.map(r => r.id)
+                    }
+                    this.disableCreateButton = true;
+                    axios.post("/api/branch", request).then(r => {
+                        if (r.data.success) {
+                            this.href("/restaurant/dashboard?action=listbranch&rid=" + this.rid)
+                        }
+                    })
+                }
+            },
+            createMenu() {
+                if (this.$refs.addMenu.validate()) {
+                    let request = {
+                        "restaurantId": this.rid,
+                        "menuName": this.addMenuForm.menuName,
+                        "startDate": +moment(this.addMenuForm.startDate),
+                        "endDate": +moment(this.addMenuForm.endDate),
+                        "showMenu": this.addMenuForm.showMenu,
+                        "tags": this.selectedTags.map(t => t.id),
+                        "images": this.menuImages
+
+                    }
+                    this.disableCreateButton = true;
+                    axios.post("/api/menu", request).then(r => {
+                        if (r.data.success) {
+                            this.href("/restaurant/dashboard?action=listmenu&rid=" + this.rid)
+                        }
+                    })
+                }
+            },
+            checkDate(date) {
+                if (date == "Jan 1, 1970") {
+                    return false;
+                }
+                return true;
+            },
         },
         computed: {
             filteredTags() {

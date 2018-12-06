@@ -8,6 +8,10 @@ public class SqlBuilder {
         return String.format("SELECT * FROM %s", table);
     }
 
+    public static String queryAllWithJoin(String table, String joinText) {
+        return String.format("SELECT * FROM %s %s", table, joinText);
+    }
+
     public static String queryById(String table) {
         return String.format("SELECT * FROM %s WHERE id = ?", table);
     }

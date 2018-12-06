@@ -1,31 +1,30 @@
 <v-card>
     <v-toolbar flat>
-        <v-toolbar-title>All Restaurant</v-toolbar-title>
+        <v-toolbar-title>All Branch</v-toolbar-title>
         <v-spacer></v-spacer>
         <v-toolbar-items>
-            <v-btn icon @click="href('/restaurant/dashboard?action=add')">
+            <v-btn icon @click="href('/restaurant/dashboard?action=addbranch&rid='+rid)">
                 <v-icon>add</v-icon>
             </v-btn>
         </v-toolbar-items>
     </v-toolbar>
 
-    <div v-for="restaurant in restaurantList">
+    <div v-for="branch in branchList">
         <v-layout row class="pa-3">
-            <v-flex xs2>
-                <v-img :src="'/api/image?id='+restaurant.logo"
-                       max-width="200" max-height="100" contain
-
-                ></v-img>
-            </v-flex>
             <v-flex>
-                <v-list>
+                <v-list three-line>
                     <v-list-tile>
                         <v-list-tile-content>
                             <v-list-tile-title>
-                                <a>{{restaurant.name}}</a>
+                                <a>{{branch.name}} ({{districtName(branch.districtId)}})</a>
                             </v-list-tile-title>
                             <v-list-tile-sub-title>
-                                {{restaurant.branchs.length}} Branch
+                                <v-icon>phone</v-icon>
+                                {{branch.telephone}}
+                            </v-list-tile-sub-title>
+                            <v-list-tile-sub-title>
+                                <v-icon>home</v-icon>
+                                {{branch.address}}
                             </v-list-tile-sub-title>
                         </v-list-tile-content>
                     </v-list-tile>
@@ -34,7 +33,7 @@
             <v-flex>
                 <v-layout align-center justify-end fill-height>
                     <v-btn flat>
-                        Manage
+                        Edit
                     </v-btn>
                     <v-menu offset-y nudge-left="105">
                         <v-icon slot="activator">arrow_drop_down</v-icon>

@@ -11,10 +11,10 @@ public class Restaurant {
 
     //association
     private List<Tag> tags;
-    private transient List<Menu> menus;
-    private transient List<Comment> comments;
-    private transient List<Branch> branchs;
-    private transient List<User> likedUser;
+    private List<Menu> menus;
+    private List<Comment> comments;
+    private List<Branch> branchs;
+    private List<User> likedUser;
 
     public Restaurant() {
     }
@@ -24,6 +24,22 @@ public class Restaurant {
         this.owner = owner;
         this.name = name;
         this.logo = logo;
+        this.background = background;
+    }
+
+    public int getLogo() {
+        return logo;
+    }
+
+    public void setLogo(int logo) {
+        this.logo = logo;
+    }
+
+    public int getBackground() {
+        return background;
+    }
+
+    public void setBackground(int background) {
         this.background = background;
     }
 
