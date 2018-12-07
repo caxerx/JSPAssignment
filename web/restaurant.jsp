@@ -62,7 +62,7 @@
                                             <v-rating v-model="rating" small dense half-increments readonly></v-rating>
                                         </v-flex>
                                         <v-flex class="shrink">
-                                            <span>({{ rating }} out of {{comments.length}})</span>
+                                            <span>({{ rating }} out of 5)</span>
                                         </v-flex>
                                         <v-flex class="mx-3 shrink">
                                             <v-divider vertical></v-divider>
