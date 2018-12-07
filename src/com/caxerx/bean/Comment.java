@@ -6,22 +6,21 @@ public class Comment implements Serializable {
     private int id;
     private int userId;
     private int restaurantId;
-    private int foodQuality;
-    private int serviceQuality;
+    private int rating;
     private String comment;
+    private long timestamp;
 
-    private transient User user;
+    private User user;
 
     public Comment() {
     }
 
-    public Comment(int id, int userId, int restaurantId, int foodQuality, int serviceQuality, String comment) {
-        this.id = id;
-        this.userId = userId;
-        this.restaurantId = restaurantId;
-        this.foodQuality = foodQuality;
-        this.serviceQuality = serviceQuality;
-        this.comment = comment;
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 
     public int getId() {
@@ -48,20 +47,12 @@ public class Comment implements Serializable {
         this.restaurantId = restaurantId;
     }
 
-    public int getFoodQuality() {
-        return foodQuality;
+    public int getRating() {
+        return rating;
     }
 
-    public void setFoodQuality(int foodQuality) {
-        this.foodQuality = foodQuality;
-    }
-
-    public int getServiceQuality() {
-        return serviceQuality;
-    }
-
-    public void setServiceQuality(int serviceQuality) {
-        this.serviceQuality = serviceQuality;
+    public void setRating(int rating) {
+        this.rating = rating;
     }
 
     public String getComment() {

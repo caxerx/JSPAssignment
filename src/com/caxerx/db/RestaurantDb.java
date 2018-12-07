@@ -1,6 +1,7 @@
 package com.caxerx.db;
 
 import com.caxerx.bean.Branch;
+import com.caxerx.bean.District;
 import com.caxerx.bean.Restaurant;
 import com.caxerx.bean.Tag;
 import com.caxerx.request.AddRestaurantRequest;
@@ -12,8 +13,12 @@ import java.util.Date;
 import java.util.List;
 
 public class RestaurantDb {
+    private final LogDb logDb;
+    private DistrictDb districtDb;
+    private LikeFavouriteCommentDb likeDb;
     private DatabaseConnectionPool pool;
     private BranchDb branchDb;
+    private MenuDb menuDb;
     private static RestaurantDb instance;
 
     public static RestaurantDb getInstance(DatabaseConnectionPool pool) {
@@ -25,6 +30,21 @@ public class RestaurantDb {
 
     private RestaurantDb(DatabaseConnectionPool pool) {
         this.pool = pool;
+        logDb = new LogDb(pool);
+    }
+
+    private LikeFavouriteCommentDb getLikeDb() {
+        if (likeDb == null) {
+            likeDb = LikeFavouriteCommentDb.getInstance(pool);
+        }
+        return likeDb;
+    }
+
+    private DistrictDb getDistrictDb() {
+        if (districtDb == null) {
+            districtDb = DistrictDb.getInstance(pool);
+        }
+        return districtDb;
     }
 
     private BranchDb getBranchDb() {
@@ -33,6 +53,15 @@ public class RestaurantDb {
         }
         return branchDb;
     }
+
+
+    private MenuDb getMenuDb() {
+        if (menuDb == null) {
+            menuDb = MenuDb.getInstance(pool);
+        }
+        return menuDb;
+    }
+
 
     public List<Restaurant> findAll() {
         try (Connection connection = pool.getConnection(); PreparedStatement statement = connection.prepareStatement(SqlBuilder.queryAll("Restaurant"))) {
@@ -46,6 +75,7 @@ public class RestaurantDb {
                     int background = resultSet.getInt("background");
                     Restaurant restaurant = new Restaurant(id, owner, name, logo, background);
                     restaurant.setTags(getRestaurantTag(restaurant.getId()));
+
                     restaurants.add(restaurant);
                 }
                 return restaurants;
@@ -92,6 +122,10 @@ public class RestaurantDb {
                     int background = resultSet.getInt("background");
                     Restaurant restaurant = new Restaurant(id, owner, name, logo, background);
                     restaurant.setTags(getRestaurantTag(restaurant.getId()));
+                    restaurant.setBranchs(getBranchDb().findRestaurantBranch(restaurant.getId()));
+                    restaurant.setMenus(getMenuDb().findRestaurantMenu(restaurant.getId()));
+                    restaurant.setComments(getLikeDb().getRestaurantComment(restaurant.getId()));
+                    restaurant.setVisitor(logDb.getVisitor(restaurant.getId()));
                     return restaurant;
                 }
             }
@@ -138,10 +172,46 @@ public class RestaurantDb {
         return true;
     }
 
+
+    public boolean update(int owner, int id, AddRestaurantRequest restaurantRequest) {
+        restaurantRequest.getRestaurantName();
+        try (Connection conn = pool.getConnection()) {
+            try (PreparedStatement stmt = conn.prepareStatement("UPDATE Restaurant SET name = ?, logo = ?, background = ? WHERE id = ?")) {
+                stmt.setString(1, restaurantRequest.getRestaurantName());
+                stmt.setInt(2, restaurantRequest.getLogo());
+                stmt.setInt(3, restaurantRequest.getBackground());
+                stmt.setInt(4, id);
+                int affectedRows = stmt.executeUpdate();
+                if (affectedRows == 0) {
+                    return false;
+                }
+            }
+
+            clearTag(conn, id);
+
+            for (int i : restaurantRequest.getTags()) {
+                insertTag(conn, id, i);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        return true;
+    }
+
     public void insertTag(Connection conn, int restaurantId, int tagId) throws SQLException {
         try (PreparedStatement stmt = conn.prepareStatement(SqlBuilder.insert("RestaurantTag", 2))) {
             stmt.setInt(1, restaurantId);
             stmt.setInt(2, tagId);
+            stmt.executeUpdate();
+        }
+    }
+
+    public void clearTag(Connection conn, int restaurantId) throws SQLException {
+        try (PreparedStatement stmt = conn.prepareStatement(SqlBuilder.deleteByColumn("RestaurantTag", "restaurantId"))) {
+            stmt.setInt(1, restaurantId);
             stmt.executeUpdate();
         }
     }
@@ -165,4 +235,12 @@ public class RestaurantDb {
     }
 
 
+    public void deleteRestaurant(int restaurantId) {
+        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.deleteByColumn("Restaurant", "id"))) {
+            stmt.setInt(1, restaurantId);
+            stmt.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

@@ -13,6 +13,7 @@ public class User implements Serializable {
     private String email;
     private Date dateOfBirth;
     private int type;
+    private List<Integer> permission;
 
     private Role role;
 
@@ -37,6 +38,13 @@ public class User implements Serializable {
         this.type = type;
     }
 
+    public List<Integer> getPermission() {
+        return permission;
+    }
+
+    public void setPermission(List<Integer> permission) {
+        this.permission = permission;
+    }
 
     public Role getRole() {
         return role;

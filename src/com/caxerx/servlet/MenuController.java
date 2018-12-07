@@ -21,6 +21,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Date;
 import java.util.List;
 
 @WebServlet(name = "MenuController", urlPatterns = {"/api/menu"})
@@ -34,13 +35,14 @@ public class MenuController extends HttpServlet {
     @Override
     public void init() throws ServletException {
         pool = DatabaseConnectionPool.contextInit(getServletContext());
-        menuDb = new MenuDb(pool);
+        menuDb = MenuDb.getInstance(pool);
         restaurantDb = RestaurantDb.getInstance(pool);
         gson = new Gson();
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("application/json");
         PrintWriter out = response.getWriter();
 
         User owner = (User) request.getSession().getAttribute("loggedInAs");
@@ -80,6 +82,52 @@ public class MenuController extends HttpServlet {
 
         response.setStatus(500);
         out.print(new FailIdResponse("Fail to create menu", code));
+
+    }
+
+
+    @Override
+    protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("application/json");
+        PrintWriter out = response.getWriter();
+
+        User owner = (User) request.getSession().getAttribute("loggedInAs");
+        if (owner == null || owner.getId() <= 0) {
+            response.setStatus(401);
+            return;
+        }
+
+        if (!request.getContentType().toLowerCase().contains("application/json")) {
+            response.setStatus(400);
+            out.print(new FailResponse("Unknown content type"));
+            return;
+        }
+        AddMenuRequest addMenuRequest;
+        try {
+            String body = CharStreams.toString(request.getReader());
+            addMenuRequest = gson.fromJson(body, AddMenuRequest.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.setStatus(400);
+            out.print(new FailResponse("Invalid request"));
+            return;
+        }
+
+        if (addMenuRequest == null) {
+            response.setStatus(400);
+            out.print(new FailResponse("Invalid request"));
+            return;
+        }
+
+
+        int code = menuDb.update(owner.getId(), addMenuRequest.getRestaurantId(), addMenuRequest);
+        if (code > 0) {
+            out.print(new SuccessResponse("Menu edited"));
+            return;
+        }
+
+        response.setStatus(500);
+        out.print(new FailIdResponse("Fail to edit menu", code));
 
     }
 
@@ -152,6 +200,28 @@ public class MenuController extends HttpServlet {
 
         out.print(new FailResponse("Failed to get menu"));
         response.setStatus(500);
+    }
+
+
+    @Override
+    protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        User user = (User) req.getSession().getAttribute("loggedInAs");
+        if (user == null || user.getId() <= 0) {
+            resp.sendRedirect("/login.jsp");
+            return;
+        }
+        if (!user.getPermission().contains(2)) {
+            resp.setStatus(401);
+        }
+        String uid = req.getParameter("menuId");
+        int uId = -1;
+        try {
+            uId = Integer.parseInt(uid);
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp.setStatus(400);
+        }
+        menuDb.deleteMenu(uId);
     }
 
 }

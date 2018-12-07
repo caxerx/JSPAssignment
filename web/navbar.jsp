@@ -1,14 +1,5 @@
-<%--
-  Created by IntelliJ IDEA.
-  User: webma
-  Date: 2/12/2018
-  Time: 6:59 PM
-  To change this template use File | Settings | File Templates.
---%>
-<%@taglib prefix="j" uri="/WEB-INF/if.tld" %>
-
+<%@ taglib prefix="j" uri="/WEB-INF/if.tld" %>
 <jsp:useBean id="loggedInAs" class="com.caxerx.bean.User" scope="session"/>
-
 <%
     boolean loggedIn = false;
 
@@ -17,11 +8,11 @@
     }
 
 %>
-<v-toolbar app dark class="primary">
-    <v-toolbar-title>
-        <%=request.getServletContext().getInitParameter("application-name")%>
-    </v-toolbar-title>
 
+<v-toolbar dark color="orange darken-1" app prominent>
+    <a class="title font-weight-light mr-2" style="color:white" @click="href('/')">Takeaway King
+        <v-icon>fastfood</v-icon>
+    </a>
     <v-spacer></v-spacer>
 
     <j:if condition="<%=loggedIn%>">
@@ -35,24 +26,34 @@
             </v-btn>
             </j:if>
 
-            <j:if condition="<%=loggedIn%>">
+            <j:if condition="<%=loggedIn && loggedInAs.getPermission().contains(1)%>">
                 <v-list>
-                    <v-list-tile @click="href('/restaurant/dashboard?action=list')">
-                        <v-list-tile-title>Restaurant</v-list-tile-title>
+                    <v-list-tile @click="href('/admin/dashboard?action=dashboard')">
+                        <v-list-tile-title>Admin Dashboard</v-list-tile-title>
                     </v-list-tile>
                 </v-list>
             </j:if>
 
 
-            <j:if condition="<%=loggedIn%>">
+            <j:if condition="<%=loggedIn && loggedInAs.getPermission().contains(2)%>">
                 <v-list>
-                    <v-list-tile @click="href('/admin/dashboard?action=userlist')">
-                        <v-list-tile-title>Admin Panel</v-list-tile-title>
+                    <v-list-tile @click="href('/restaurant/dashboard?action=dashboard')">
+                        <v-list-tile-title>Manage Restaurant</v-list-tile-title>
                     </v-list-tile>
                 </v-list>
             </j:if>
 
             <j:if condition="<%=loggedIn%>">
+            <v-list>
+                <v-list-tile @click="href('/favourite.jsp')">
+                    <v-list-tile-title>Favourite</v-list-tile-title>
+                </v-list-tile>
+            </v-list>
+            <v-list>
+                <v-list-tile @click="href('/edit-user-info.jsp')">
+                    <v-list-tile-title>Edit User Info</v-list-tile-title>
+                </v-list-tile>
+            </v-list>
             <v-list>
                 <v-list-tile @click="href('/api/logout')">
                     <v-list-tile-title>Logout</v-list-tile-title>
@@ -82,3 +83,4 @@
     </j:if>
 
 </v-toolbar>
+

@@ -8,6 +8,7 @@ public class Restaurant {
     private String name;
     private int logo;
     private int background;
+    private int visitor;
 
     //association
     private List<Tag> tags;
@@ -25,6 +26,14 @@ public class Restaurant {
         this.name = name;
         this.logo = logo;
         this.background = background;
+    }
+
+    public int getVisitor() {
+        return visitor;
+    }
+
+    public void setVisitor(int visitor) {
+        this.visitor = visitor;
     }
 
     public int getLogo() {

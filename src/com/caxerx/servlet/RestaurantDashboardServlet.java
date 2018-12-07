@@ -27,8 +27,8 @@ public class RestaurantDashboardServlet extends HttpServlet {
         tagDb = new TagDb(pool);
         restaurantDb = RestaurantDb.getInstance(pool);
         branchDb = BranchDb.getInstance(pool);
-        districtDb = new DistrictDb(pool);
-        menuDb = new MenuDb(pool);
+        districtDb = DistrictDb.getInstance(pool);
+        menuDb = MenuDb.getInstance(pool);
         gson = new Gson();
     }
 
@@ -39,12 +39,22 @@ public class RestaurantDashboardServlet extends HttpServlet {
             response.sendRedirect("/login.jsp");
             return;
         }
+        if (!user.getPermission().contains(2)) {
+            response.sendRedirect("/index.jsp");
+            return;
+        }
         String action = request.getParameter("action");
         if (action == null) {
             action = "";
         }
         int rid = -1;
         switch (action) {
+            case "dashboard":
+                request.setAttribute("nav", "dash");
+                request.setAttribute("tags", gson.toJson(tagDb.findAll()));
+                request.setAttribute("actionName", "Dashboard");
+                request.setAttribute("action", "dashboard/restaurant-dash.jsp");
+                break;
             case "add":
                 request.setAttribute("nav", "dash");
                 request.setAttribute("tags", gson.toJson(tagDb.findAll()));
@@ -55,6 +65,25 @@ public class RestaurantDashboardServlet extends HttpServlet {
                 request.setAttribute("nav", "dash");
                 request.setAttribute("actionName", "Restaurant List");
                 request.setAttribute("action", "dashboard/restaurant-list.jsp");
+                break;
+            case "info":
+                rid = checkOwner(user, request, response);
+                if (rid < 0) {
+                    return;
+                }
+                request.setAttribute("districts", gson.toJson(districtDb.findAll()));
+                request.setAttribute("action", "dashboard/restaurant/restaurant-info.jsp");
+                request.setAttribute("actionName", "Restaurant Information");
+                break;
+            case "editinfo":
+                rid = checkOwner(user, request, response);
+                if (rid < 0) {
+                    return;
+                }
+                request.setAttribute("tags", gson.toJson(tagDb.findAll()));
+                request.setAttribute("action", "dashboard/restaurant/restaurant-edit-info.jsp");
+                request.setAttribute("actionName", "Edit Information");
+                request.setAttribute("editInfo", "");
                 break;
             case "addmenu":
                 rid = checkOwner(user, request, response);
@@ -73,6 +102,28 @@ public class RestaurantDashboardServlet extends HttpServlet {
                 request.setAttribute("districts", gson.toJson(districtDb.findAll()));
                 request.setAttribute("action", "dashboard/restaurant/branch-add.jsp");
                 request.setAttribute("actionName", "Add Branch");
+                break;
+            case "editbranch":
+                rid = checkOwner(user, request, response);
+                if (rid < 0) {
+                    return;
+                }
+                request.setAttribute("branch", gson.toJson(branchDb.findRestaurantBranch(rid)));
+                request.setAttribute("districts", gson.toJson(districtDb.findAll()));
+                request.setAttribute("action", "dashboard/restaurant/branch-edit.jsp");
+                request.setAttribute("actionName", "Edit Branch");
+                request.setAttribute("editBranch", request.getParameter("bid"));
+                break;
+            case "editmenu":
+                rid = checkOwner(user, request, response);
+                if (rid < 0) {
+                    return;
+                }
+                request.setAttribute("tags", gson.toJson(tagDb.findAll()));
+                request.setAttribute("menu", gson.toJson(menuDb.findRestaurantMenu(rid)));
+                request.setAttribute("action", "dashboard/restaurant/menu-edit.jsp");
+                request.setAttribute("actionName", "Edit Menu");
+                request.setAttribute("editMenu", request.getParameter("mid"));
                 break;
             case "listbranch":
                 rid = checkOwner(user, request, response);

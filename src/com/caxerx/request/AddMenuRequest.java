@@ -5,6 +5,7 @@ import java.util.ArrayList;
 
 public class AddMenuRequest implements Serializable {
     private int restaurantId;
+    private int menuId;
     private String menuName;
     private long startDate;
     private long endDate;
@@ -23,6 +24,14 @@ public class AddMenuRequest implements Serializable {
         this.showMenu = showMenu;
         this.tags = tags;
         this.images = images;
+    }
+
+    public int getMenuId() {
+        return menuId;
+    }
+
+    public void setMenuId(int menuId) {
+        this.menuId = menuId;
     }
 
     public ArrayList<Integer> getImages() {

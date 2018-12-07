@@ -3,10 +3,7 @@ package com.caxerx.servlet;
 import com.caxerx.bean.Menu;
 import com.caxerx.bean.Restaurant;
 import com.caxerx.bean.Tag;
-import com.caxerx.db.DatabaseConnectionPool;
-import com.caxerx.db.MenuDb;
-import com.caxerx.db.RestaurantDb;
-import com.caxerx.db.TagDb;
+import com.caxerx.db.*;
 import com.google.gson.Gson;
 
 import javax.servlet.ServletException;
@@ -26,12 +23,14 @@ public class SearchController extends HttpServlet {
     private MenuDb menuDb;
     private RestaurantDb restaurantDb;
     private Gson gson;
+    private LogDb logDb;
 
     @Override
     public void init() throws ServletException {
         pool = DatabaseConnectionPool.contextInit(getServletContext());
-        menuDb = new MenuDb(pool);
+        menuDb = MenuDb.getInstance(pool);
         restaurantDb = RestaurantDb.getInstance(pool);
+        logDb = new LogDb(pool);
         gson = new Gson();
     }
 
@@ -43,6 +42,7 @@ public class SearchController extends HttpServlet {
         String keyword = request.getParameter("keyword");
         String tags = request.getParameter("tag");
         String district = request.getParameter("district");
+
         if (type == null) {
             type = "restaurant";
         }
@@ -61,7 +61,7 @@ public class SearchController extends HttpServlet {
                     cond.add("`MenuTag`.`tagId` = ?");
                 }
                 if (district != null) {
-                    cond.add("`RestaurantDistrict`.`districtId` = ?");
+                    cond.add("`Branch`.`districtId` = ?");
                 }
                 if (cond.size() > 0) {
                     String s = String.join(" AND ", cond);
@@ -104,6 +104,7 @@ public class SearchController extends HttpServlet {
                             menu.setRestaurant(rest);
                             menus.add(menu);
                         }
+                        logDb.logSearch(type,keyword,tags,district);
                         out.print(gson.toJson(menus));
                     }
                 } catch (SQLException e) {
@@ -123,7 +124,7 @@ public class SearchController extends HttpServlet {
                     cond.add("`RestaurantTag`.`tagId` = ?");
                 }
                 if (district != null) {
-                    cond.add("`RestaurantDistrict`.`districtId` = ?");
+                    cond.add("`Branch`.`districtId` = ?");
                 }
                 if (cond.size() > 0) {
                     String s = String.join(" AND ", cond);
@@ -159,6 +160,7 @@ public class SearchController extends HttpServlet {
                             restaurant.setTags(tag);
                             restaurants.add(restaurant);
                         }
+                        logDb.logSearch(type,keyword,tags,district);
                         out.print(gson.toJson(restaurants));
                     }
                 } catch (SQLException e) {

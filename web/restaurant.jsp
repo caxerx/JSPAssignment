@@ -1,3 +1,11 @@
+<%@ taglib prefix="j" uri="/WEB-INF/if.tld" %>
+<jsp:useBean id="loggedInAs" scope="session" class="com.caxerx.bean.User"/>
+<%
+    boolean loggedIn = false;
+    if (loggedInAs != null && loggedInAs.getId() != 0) {
+        loggedIn = true;
+    }
+%>
 <!DOCTYPE html>
 <html>
 
@@ -9,36 +17,43 @@
     <script src="https://cdn.jsdelivr.net/npm/axios@0.18.0/dist/axios.js"></script>
     <link href='https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons' rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet">
-
 </head>
 
 <body>
 <div id="app">
     <v-app>
         <!-- Nav bar -->
-        <v-toolbar dark color="orange darken-1" app prominent>
-            <span class="title font-weight-light mr-2">Takeaway King</span>
-            <v-icon>fastfood</v-icon>
-            <v-spacer></v-spacer>
-            <v-avatar color="grey">
-                <v-icon>person</v-icon>
-            </v-avatar>
-        </v-toolbar>
+        <jsp:include page="navbar.jsp"></jsp:include>
         <v-content>
-            <div style="width:100%;height: 400px;background:linear-gradient(to bottom, #444, #000)"></div>
+            <div style="width:100%;height: 400px;background:linear-gradient(to bottom, #444, #000)">
+                <v-img :src="backgroundImg" max-height="400px">
+                    <v-layout fill-height style="background:linear-gradient(to top, rgba(0,0,0,0.7),rgba(0,0,0,0))">
+                    </v-layout>
+                </v-img>
+            </div>
             <v-container style="margin-top:-150px;">
                 <v-card tile>
-                    <v-layout row wrap>
+                    <v-layout row>
                         <!-- Restaurant Logo -->
-                        <v-flex xs3 class="pa-3">
-                            <v-img :src="restaurantImg" class="black"></v-img>
+                        <v-flex class="pa-3">
+                            <v-img :src="restaurantImg" aspect-ratio="1" class="black"></v-img>
                         </v-flex>
                         <!-- Restaurant Description -->
                         <v-flex xs9 class="pl-2 pt-4">
                             <v-layout column>
                                 <!-- Restaurant Name -->
                                 <v-flex>
-                                    <span class="display-3">{{ restaurantName }}</span>
+                                    <v-layout row align-center>
+                                        <span class="display-3 mr-3">{{ restaurantName }}</span>
+                                        <j:if condition="<%=loggedIn%>">
+                                            <v-btn icon @click="favouriteRest()">
+                                                <v-icon :color="favorited ? 'pink' : 'grey'">favorite</v-icon>
+                                            </v-btn>
+                                            <v-btn icon @click="likeRest()">
+                                                <v-icon :color="liked ? 'blue' : 'grey'">thumb_up</v-icon>
+                                            </v-btn>
+                                        </j:if>
+                                    </v-layout>
                                 </v-flex>
                                 <!-- Rating -->
                                 <v-flex class="ma-2">
@@ -47,7 +62,7 @@
                                             <v-rating v-model="rating" small dense half-increments readonly></v-rating>
                                         </v-flex>
                                         <v-flex class="shrink">
-                                            <span>({{ rating }} out of 5)</span>
+                                            <span>({{ rating }} out of {{comments.length}})</span>
                                         </v-flex>
                                         <v-flex class="mx-3 shrink">
                                             <v-divider vertical></v-divider>
@@ -65,7 +80,7 @@
                                 </v-flex>
                                 <!-- Tags -->
                                 <v-flex>
-                                    <v-chip v-for="tag in tags">{{ tag }}</v-chip>
+                                    <v-chip v-for="tag in tags">{{ tag.name }}</v-chip>
                                 </v-flex>
                             </v-layout>
                         </v-flex>
@@ -74,71 +89,101 @@
 
                 <!-- Takeaway Menu -->
                 <h2 class="title my-2 font-weight-light">Takeaway Menus</h2>
-                <v-card>
-                    <v-layout row wrap class="pa-3">
-                        <v-flex xs3 v-for="menu in menus" class="pa-2">
-                            <v-img :src="menu" aspect-ratio="1.6"></v-img>
-                        </v-flex>
-                    </v-layout>
-                </v-card>
+
+                <v-layout row wrap class="py-3">
+                    <v-flex xs3 v-for="menu in menus" class="pa-1">
+                        <v-card dark>
+                            <v-img v-if="menu.image.length>0" :src="menu.image[0]" aspect-ratio="1.6"
+                                   @click="openMenu(menu)"></v-img>
+                            <v-img v-else src="/static/image/noimage.png"
+                                   aspect-ratio="1.6"></v-img>
+                            <v-toolbar transparent flat>
+                                {{ menu.title }}
+                                <j:if condition="<%=loggedIn%>">
+                                    <v-spacer></v-spacer>
+                                    <v-btn icon @click="favMenu(menu.id)">
+                                        <v-icon :color="menu.fav ? 'pink' : 'grey'">favorite</v-icon>
+                                    </v-btn>
+                                </j:if>
+                            </v-toolbar>
+                        </v-card>
+                    </v-flex>
+                </v-layout>
+                <!-- Menu Detail -->
+                <v-dialog v-model="menuDialog" max-width="1200px">
+                    <v-card dark v-if="openedMenu">
+                        <v-layout row align-center justify-center>
+                            <v-flex xs1>
+                                <v-layout row justify-center align-center>
+                                    <v-btn icon @click="menuPage--" :disabled="menuPage==0">
+                                        <v-icon>arrow_left</v-icon>
+                                    </v-btn>
+                                </v-layout>
+                            </v-flex>
+                            <v-flex xs10>
+                                <v-img :src="openedMenu.image[menuPage]" max-height="80vh" contain></v-img>
+                            </v-flex>
+                            <v-flex xs1>
+                                <v-layout row justify-center align-center>
+                                    <v-btn icon @click="menuPage++" :disabled="menuPage==openedMenu.image.length-1">
+                                        <v-icon>arrow_right</v-icon>
+                                    </v-btn>
+                                </v-layout>
+                            </v-flex>
+                        </v-layout>
+                    </v-card>
+                </v-dialog>
 
                 <!-- Branches -->
                 <h2 class="title my-2 font-weight-light">Branches</h2>
                 <v-card>
                     <template v-for="branch in branches">
-                        <v-layout column>
+                        <v-layout column fill-height>
                             <v-flex>
-                                <v-layout row class="pa-3" row align-center>
+                                <v-layout row class="pa-3" row align-center fill-height>
                                     <!-- Address -->
                                     <v-flex xs8>
-                                        <span>{{ branch.address }}, {{ branch.district }}</span>
-                                    </v-flex>
-                                    <!-- Open Hours -->
-                                    <v-flex xs4>
-                                        <template v-for="t in branch.openTime">
-                                            <span>{{ t.day }}: {{ t.openHour }}</span><br>
-                                        </template>
+                                        <span>
+                                            <v-icon class="mr-2">store_mall_directory</v-icon>
+                                            {{ branch.address }}, {{ branch.district.name }}</span>
                                     </v-flex>
                                     <!-- Tel -->
-                                    <v-flex xs2>
-                                        <v-layout column justify-center>
+                                    <v-flex xs6>
+                                        <v-layout column justify-center fill-height>
+                                            <v-flex>
+                                                <v-layout row align-center my-1>
+                                                    <v-icon class="mr-4">schedule</v-icon>
+                                                    <span>{{
+                                                            branch.openTime
+                                                            }}</span>
+                                                </v-layout>
+                                            </v-flex>
                                             <v-flex>
                                                 <v-layout row align-center my-1>
                                                     <v-icon class="mr-4">phone</v-icon>
-                                                    <span>{{ branch.tel }}</span>
+                                                    <span>{{ branch.telephone }}</span>
                                                 </v-layout>
                                             </v-flex>
                                             <v-flex>
                                                 <v-layout row align-center my-1>
                                                     <v-icon class="mr-4">location_on</v-icon>
                                                     <span>{{
-                                                            branch.district
+                                                            branch.district.name
                                                             }}</span>
                                                 </v-layout>
                                             </v-flex>
-
                                         </v-layout>
-
                                     </v-flex>
                                 </v-layout>
                             </v-flex>
                             <v-flex pa-3>
                                 <span>Delivers to</span>
-                                <template v-if="branch.deliveryDistrict.length>3">
-                                    <v-chip>{{ branch.deliveryDistrict[0] }}</v-chip>
-                                    <v-chip>{{ branch.deliveryDistrict[1] }}</v-chip>
-                                    <v-chip>{{ branch.deliveryDistrict[2] }}</v-chip>
-                                    <span> and more....</span>
-                                </template>
-                                <template v-else>
-                                    <v-chip v-for="d in branch.deliveryDistrict">{{ d }}</v-chip>
-                                </template>
+                                <v-chip v-for="d in branch.deliveryDistrict.slice(0,3)">{{ d.name }}</v-chip>
+                                <span v-if="branch.deliveryDistrict.length>3"> and more....</span>
                             </v-flex>
                         </v-layout>
                         <v-divider></v-divider>
                     </template>
-
-
                 </v-card>
 
                 <!-- Comment -->
@@ -151,11 +196,11 @@
                                 <v-layout column justify-center align-center>
                                     <v-flex>
                                         <v-avatar color="orange" class="mb-2">
-                                            <v-icon>{{ comment.avatar }}</v-icon>
+                                            <v-icon>account_circle</v-icon>
                                         </v-avatar>
                                     </v-flex>
                                     <v-flex>
-                                        {{ comment.author }}
+                                        {{ comment.user.username }}
                                     </v-flex>
                                     <v-flex>
                                         <v-rating small dense readonly v-model="comment.rating"></v-rating>
@@ -165,7 +210,7 @@
                             <v-flex xs10>
                                 <v-layout column fill-height>
                                     <v-flex xs10>
-                                        <div class="body-2">{{ comment.content }}</div>
+                                        <div class="body-2">{{ comment.comment }}</div>
                                     </v-flex>
                                     <v-flex xs2>
                                             <span class="caption grey--text">Posted on {{
@@ -174,84 +219,146 @@
                                 </v-layout>
                             </v-flex>
                         </v-layout>
-                        <!-- <div>
-                                    <v-avatar color="grey" class="mr-4">
-                                        <v-icon>{{ comment.avatar }}</v-icon>
-                                    </v-avatar>
-                                    <span class="subheading mr-4">{{ comment.author }}</span>
-                                    <span class="caption grey--text">posted on {{ showDate(comment.postTime) }}</span>
-                                </div> -->
                         <v-divider></v-divider>
                     </template>
+                    <!-- New Comment -->
+                    <j:if condition="<%=loggedIn%>">
 
+                        <v-layout column pa-3>
+                            <span class="subheading">Add a new comment</span>
+                            <v-layout row align-center>
+                                Rating:
+                                <v-rating v-model="newCommentRating"></v-rating>
+                            </v-layout>
+                            <v-textarea v-model="newComment" hide-details></v-textarea>
+                        </v-layout>
+                        <v-layout row px-3 pb-3>
+                            <v-spacer></v-spacer>
+                            <v-btn color="orange" @click="postComment">Submit</v-btn>
+                        </v-layout>
+                    </j:if>
                 </v-card>
 
             </v-container>
         </v-content>
     </v-app>
 </div>
+<%
+    if (request.getParameter("rid") == null) {
+        response.sendRedirect("/error/404.jsp");
+    }
+%>
 <script>
     new Vue({
         el: '#app',
         created() {
-            <%
-                String rid = request.getParameter("rid");
-                if(rid==null){
-                    response.sendRedirect("/error/404.jsp");
-                }
-            %>
-
-            let rid = <%=rid%>;
+            this.loadData();
         },
+
         data: {
-            restaurantImg: '/img/mcdonalds_0.png',
-            restaurantName: 'McDonald\'s',
-            rating: 4.5,
-            tags: ['fast food', 'fried', 'western', 'hungary'],
-            menus: ['/img/m1.jpg', '/img/m2.jpg', '/img/m3.jpg', '/img/m4.jpg', '/img/m5.jpg'],
-            numVisited: 23240,
-            comments: [{
-                author: 'John Linux',
-                avatar: 'account_circle',
-                content: 'What a wonderful piece of shit',
-                postTime: '2018-09-09T13:24:12',
-                rating: 4
-            }, {
-                author: 'John Cena',
-                avatar: 'school',
-                content: 'Bitch please.',
-                postTime: '2018-09-05T17:33:15',
-                rating: 5
-            }],
-            branches: [{
-                address: 'A113, fuck you road, DLLM, ONL99',
-                district: 'Yau Ma Tei',
-                deliveryDistrict: ['Tseung Kwan O', 'Mong Kwok', 'Chim Sha Tsui', 'Sheung Shui'],
-                tel: '25890343',
-                openTime: [{
-                    day: 'Weekday',
-                    openHour: '6:00AM - 12:00PM'
-                }, {
-                    day: 'Sat & Sun',
-                    openHour: '9:00AM - 5:00PM'
-                }, {
-                    day: 'Public holiday',
-                    openHour: 'closed'
-                }],
-            }, {
-                address: 'Oh building, Shit load, Uninstall hope',
-                district: 'San Ka La',
-                deliveryDistrict: ['Lei Lo Mo go Sai', 'Si An'],
-                tel: '20632422',
-                openTime: [{
-                    day: 'Everyday',
-                    openHour: '24 hours'
-                }],
-            }]
+            rid: <%=request.getParameter("rid")%>,
+            newCommentRating: 5,
+            newComment: '',
+            liked: false,
+            favorited: false,
+            restaurantImg: '',
+            backgroundImg: '',
+            restaurantName: '',
+            rating: 0,
+            tags: [],
+            // Menu Dialog
+            menuDialog: false,
+            openedMenu: undefined,
+            menuPage: 0,
+            menus: [],
+            numVisited: 0,
+            comments: [],
+            branches: []
         },
         methods: {
+            href(loc) {
+                window.location.href = loc
+            },
+            async loadData() {
+                try {
+                    <j:if condition="<%=loggedIn%>">
+                    let lk = await axios.get("/api/liked?restaurantId=" + this.rid);
+                    this.liked = lk.data.content
+                    let fv = await axios.get("/api/favourited?restaurantId=" + this.rid);
+                    this.favorited = fv.data.content
+                    </j:if>
+
+                    let requests = [];
+                    let restaurantResult = await axios({
+                        url: '/api/restaurant?id=' + this.rid
+                    });
+                    let rData = restaurantResult.data;
+                    console.log('Restaurant data:', rData);
+                    this.menus = rData.menus.map(m => {
+                        m.fav = false;
+                        m.image = m.image.map(i => '/api/image?id=' + i)
+                        return m;
+                    });
+                    <j:if condition="<%=loggedIn%>">
+                    for (i in this.menus) {
+                        let fv2 = await axios.get("/api/favourited?menuId=" + this.menus[i].id);
+                        this.menus[i].fav = fv2.data.content
+                    }
+                    </j:if>
+                    this.branches = rData.branchs;
+                    this.tags = rData.tags;
+                    this.restaurantName = rData.name;
+                    this.restaurantImg = '/api/image?id=' + rData.logo;
+                    this.backgroundImg = '/api/image?id=' + rData.background;
+                    this.comments = rData.comments;
+                    this.comments.forEach(r => {
+                        this.rating += r.rating
+                    })
+                    if (this.comments.length > 0) {
+                        this.rating = new Number(parseFloat(this.rating / this.comments.length).toFixed(2))
+                    }
+                    this.numVisited = rData.visitor;
+                } catch (e) {
+                    this.href("/index.jsp")
+                }
+            },
             showDate(date) {
                 return moment(date).format('YYYY-MM-DD');
+            },
+            openMenu(menu) {
+                this.menuPage = 0;
+                this.openedMenu = menu;
+                this.menuDialog = true;
+            },
+            async favouriteRest() {
+                await axios({
+                    url: '/api/favourite?restaurantId=' + this.rid
+                }).then(() => {
+                    location.reload()
+                })
+            },
+            async favMenu(id) {
+                await axios({
+                    url: '/api/favourite?menuId=' + id
+                }).then(() => {
+                    location.reload()
+                })
+            },
+            async likeRest() {
+                await axios({
+                    url: '/api/like?restaurantId=' + this.rid
+                }).then(() => {
+                    location.reload()
+                })
+            },
+            async postComment() {
+                await axios({
+                    url: '/api/comment?restaurantId=' + this.rid + '&comment=' +
+                        this.newComment + '&rating=' + this.newCommentRating
+                })
+                this.newComment = '';
+                this.newCommentRating = 5;
+                this.loadData();
             }
         }
     })

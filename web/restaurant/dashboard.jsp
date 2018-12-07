@@ -40,17 +40,86 @@
 <script src="https://cdn.jsdelivr.net/npm/moment@2.22.2/moment.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vuetify@1.3.9/dist/vuetify.js "></script>
 <script src="https://cdn.jsdelivr.net/npm/axios@0.18.0/dist/axios.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/vuetify-upload-button@1.2.1/dist/vuetify-upload-button.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+<script src="https://unpkg.com/vue-chartjs/dist/vue-chartjs.min.js"></script>
+
 </body>
 </html>
 
 
 <script>
+    let m_key = []
+    let m_value = []
+
+    let d_key = []
+    let d_value = []
+
+    let k_key = []
+    let k_value = []
+
+
+    let mc = Vue.component('month-chart', {
+        extends: VueChartJs.Line,
+        mounted() {
+            setTimeout(() => {
+                this.renderChart({
+                    labels: m_key,
+                    datasets: [
+                        {
+                            label: 'Total Visitor',
+                            backgroundColor: '#800080',
+                            data: m_value
+                        }
+                    ]
+                }, {responsive: true, maintainAspectRatio: false})
+            }, 200)
+        },
+    })
+
+    let dc = Vue.component('district-chart', {
+        extends: VueChartJs.Bar,
+        mounted() {
+            setTimeout(() => {
+                this.renderChart({
+                    labels: d_key,
+                    datasets: [
+                        {
+                            label: 'Total Visitor',
+                            backgroundColor: '#800080',
+                            data: d_value
+                        }
+                    ]
+                }, {responsive: true, maintainAspectRatio: false})
+            }, 200)
+        },
+    })
+
+
+    let kc = Vue.component('kind-chart', {
+        extends: VueChartJs.Bar,
+        mounted() {
+            setTimeout(() => {
+                this.renderChart({
+                    labels: k_key,
+                    datasets: [
+                        {
+                            label: 'Total Visitor',
+                            backgroundColor: '#800080',
+                            data: k_value
+                        }
+                    ]
+                }, {responsive: true, maintainAspectRatio: false})
+            }, 200)
+        },
+    })
+
     Vue.use(VuetifyUploadButton);
     new Vue({
         el: '#app',
         data: () => ({
+            staticBy: 0,
             rid: -1,
             selectedTags: [],
             tagSearch: "",
@@ -105,20 +174,35 @@
             endDateMenu: false,
             openTimeMenu: false,
             closeTimeMenu: false,
-            menuImages: []
+            menuImages: [],
+            bid: -1,
+            mid: -1
         }),
         created() {
             this.$vuetify.theme.primary = '#800080';
 
-
-            <%--load tags from request --%>
-            <%
-                Object tags = request.getAttribute("tags");
-                if(tags!=null){
-                 out.println("let tag = '"+tags+"'");
-                 out.println("this.tags = JSON.parse(tag);");
+            axios.get("/api/stat/owner/month").then(r => {
+                for (let i = 0; i <= 11; i++) {
+                    m_key.push(moment().month(i).format("MMMM"))
+                    m_value.push(r.data[i + 1])
                 }
-            %>
+            })
+
+            axios.get("/api/stat/owner/district").then(r => {
+                let jd = r.data;
+                Object.keys(jd).forEach(k => {
+                    d_key.push(k);
+                    d_value.push(jd[k])
+                })
+            })
+
+            axios.get("/api/stat/owner/kind").then(r => {
+                let jd = r.data;
+                Object.keys(jd).forEach(k => {
+                    k_key.push(k);
+                    k_value.push(jd[k])
+                })
+            })
 
 
             <%--load district from request --%>
@@ -165,17 +249,85 @@
                 }
             %>
 
+
             this.restaurantList.map(rest => {
                 rest.idName = rest.id + " - " + rest.name;
                 return rest
             });
 
             if (rid) {
-                let idx = this.restaurantList.findIndex(r => r.id == rid);
-                if (idx > 0) {
-                    this.selectedRestaurant = this.restaurantList[idx].idName;
-                }
+                this.selectedRestaurant = this.restaurantList.find(r => r.id == rid);
             }
+
+
+            <j:if condition="<%=request.getAttribute("editInfo")!=null%>">
+            this.addForm.restaurantName = this.selectedRestaurant.name
+
+            this.imageUpload.logo.imageId = this.selectedRestaurant.logo
+            this.imageUpload.background.imageId = this.selectedRestaurant.background
+
+            this.selectedTags = this.selectedRestaurant.tags
+
+            this.imageUpload.logo.image = "/api/image?id=" + this.selectedRestaurant.logo
+            this.imageUpload.logo.fileName = this.selectedRestaurant.logo
+
+            this.imageUpload.background.image = "/api/image?id=" + this.selectedRestaurant.background
+            this.imageUpload.background.fileName = this.selectedRestaurant.background
+
+            </j:if>
+
+            let bId = <%=request.getAttribute("editBranch")%>;
+            this.bid = bId;
+
+            <j:if condition="<%=request.getAttribute("editBranch")!=null%>">
+            let _b = this.branchList.find(b => b.id == bId);
+            this.addBranchForm.branchName = _b.name
+            this.addBranchForm.district = _b.districtId
+            let t = _b.openTime.split(" - ");
+            this.addBranchForm.openTime = t[0]
+            this.addBranchForm.closeTime = t[1]
+            this.addBranchForm.address = _b.address
+            this.addBranchForm.telephone = _b.telephone
+            this.selectedTags = _b.deliveryDistrict
+            </j:if>
+
+            let mId = <%=request.getAttribute("editMenu")%>;
+            this.mid = mId;
+
+            <j:if condition="<%=request.getAttribute("editMenu")!=null%>">
+            let _m = this.menuList.find(m => m.id == mId);
+            console.log(_m)
+            this.addMenuForm.menuName = _m.title;
+            let sde = +moment(_m.startTime, "MMM D, YYYY") <= 0
+            let ede = +moment(_m.endTime, "MMM D, YYYY") <= 0
+            this.addMenuForm.startDate = sde ? "" : moment(_m.startTime, "MMM D, YYYY").format("YYYY-MM-DD")
+            this.addMenuForm.endDate = ede ? "" : moment(_m.endTime, "MMM D, YYYY").format("YYYY-MM-DD")
+            this.addMenuForm.showMenu = _m.showMenu
+            this.selectedTags = _m.tags
+            this.menuImages = _m.image
+            </j:if>
+
+            /*
+            "restaurantId": this.rid,
+                        "menuId": this.mid,
+                        "menuName": this.addMenuForm.menuName,
+                        "startDate": +moment(this.addMenuForm.startDate),
+                        "endDate": +moment(this.addMenuForm.endDate),
+                        "showMenu": this.addMenuForm.showMenu,
+                        "tags": this.selectedTags.map(t => t.id),
+                        "images": this.menuImages
+             */
+
+
+            <%--load tags from request --%>
+            <%
+                Object tags = request.getAttribute("tags");
+                if(tags!=null){
+                 out.println("let tag = '"+tags+"'");
+                 out.println("this.tags = JSON.parse(tag);");
+                }
+            %>
+
         },
         methods: {
             href(loc) {
@@ -250,6 +402,22 @@
                     })
                 }
             },
+            editRestaurant() {
+                if (this.$refs.addForm.validate()) {
+                    let request = {
+                        restaurantName: this.addForm.restaurantName,
+                        logo: this.imageUpload.logo.imageId,
+                        background: this.imageUpload.background.imageId,
+                        tags: this.selectedTags.map(p => p.id)
+                    };
+                    this.disableCreateButton = true;
+                    axios.put("/api/restaurant?rid=" + this.rid, request).then(r => {
+                        if (r.data.success) {
+                            this.href("/restaurant/dashboard?action=info&rid=" + this.rid)
+                        }
+                    })
+                }
+            },
             uploadMenuImg(file) {
                 this.uploadFile(file, () => {
                 }).then(uFile => {
@@ -285,6 +453,27 @@
                     })
                 }
             },
+            editBranch() {
+                if (this.$refs.addBranch.validate()) {
+                    let request = {
+                        "branchId": this.bid,
+                        "restaurantId": this.rid,
+                        "branchName": this.addBranchForm.branchName,
+                        "district": this.addBranchForm.district,
+                        "openTime": this.addBranchForm.openTime,
+                        "closeTime": this.addBranchForm.closeTime,
+                        "address": this.addBranchForm.address,
+                        "phoneNumber": this.addBranchForm.telephone,
+                        "deliveryDistrict": this.selectedTags.map(r => r.id)
+                    }
+                    this.disableCreateButton = true;
+                    axios.put("/api/branch", request).then(r => {
+                        if (r.data.success) {
+                            this.href("/restaurant/dashboard?action=listbranch&rid=" + this.rid)
+                        }
+                    })
+                }
+            },
             createMenu() {
                 if (this.$refs.addMenu.validate()) {
                     let request = {
@@ -305,19 +494,60 @@
                     })
                 }
             },
+            editMenu() {
+                if (this.$refs.addMenu.validate()) {
+                    let request = {
+                        "restaurantId": this.rid,
+                        "menuId": this.mid,
+                        "menuName": this.addMenuForm.menuName,
+                        "startDate": +moment(this.addMenuForm.startDate),
+                        "endDate": +moment(this.addMenuForm.endDate),
+                        "showMenu": this.addMenuForm.showMenu,
+                        "tags": this.selectedTags.map(t => t.id),
+                        "images": this.menuImages
+                    }
+                    this.disableCreateButton = true;
+                    axios.put("/api/menu", request).then(r => {
+                        if (r.data.success) {
+                            this.href("/restaurant/dashboard?action=listmenu&rid=" + this.rid)
+                        }
+                    })
+                }
+            },
             checkDate(date) {
                 if (date == "Jan 1, 1970") {
                     return false;
                 }
                 return true;
             },
+            toggleVisibility(id) {
+                axios.get("/api/menuvisibility?menuId=" + id).then(r => {
+                    let menu = this.menuList.find(m => m.id == id)
+                    menu.showMenu = !menu.showMenu
+                })
+            },
+            deleteRestaurant(id) {
+                axios.delete("/api/restaurant?restaurantId=" + id).then(r => {
+                    location.reload()
+                })
+            },
+            deleteBranch(id) {
+                axios.delete("/api/branch?branchId=" + id).then(r => {
+                    location.reload()
+                })
+            },
+            deleteMenu(id) {
+                axios.delete("/api/menu?menuId=" + id).then(r => {
+                    location.reload()
+                })
+            }
         },
         computed: {
             filteredTags() {
-                return this.tags.filter(tag => tag.name.includes(this.tagSearch) && !this.selectedTags.includes(tag));
+                return this.tags.filter(tag => tag.name.includes(this.tagSearch) && this.selectedTags.findIndex(t => t.id == tag.id) < 0);
             },
             filteredDistricts() {
-                return this.districts.filter(tag => tag.name.includes(this.tagSearch) && !this.selectedTags.includes(tag));
+                return this.districts.filter(tag => tag.name.includes(this.tagSearch) && this.selectedTags.findIndex(t => t.id == tag.id) < 0);
             }
         }
     })

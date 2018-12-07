@@ -87,6 +87,51 @@ public class BranchController extends HttpServlet {
 
 
     @Override
+    protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        PrintWriter out = response.getWriter();
+
+        User owner = (User) request.getSession().getAttribute("loggedInAs");
+        if (owner == null || owner.getId() <= 0) {
+            response.setStatus(401);
+            return;
+        }
+
+        if (!request.getContentType().toLowerCase().contains("application/json")) {
+            response.setStatus(400);
+            out.print(new FailResponse("Unknown content type"));
+            return;
+        }
+        AddBranchRequest addBranchRequest;
+        try {
+            String body = CharStreams.toString(request.getReader());
+            addBranchRequest = gson.fromJson(body, AddBranchRequest.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.setStatus(400);
+            out.print(new FailResponse("Invalid request -3"));
+            return;
+        }
+
+        if (addBranchRequest == null) {
+            response.setStatus(400);
+            out.print(new FailResponse("Invalid request -2"));
+            return;
+        }
+
+
+        int code = branchDb.update(owner.getId(), addBranchRequest.getRestaurantId(), addBranchRequest.getBranchId(), addBranchRequest);
+        if (code > 0) {
+            out.print(new SuccessResponse("Branch edited"));
+            return;
+        }
+
+        response.setStatus(500);
+        out.print(new FailIdResponse("Fail to edit branch", code));
+
+    }
+
+
+    @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         response.setContentType("application/json");
         PrintWriter out = response.getWriter();
@@ -154,6 +199,28 @@ public class BranchController extends HttpServlet {
 
         out.print(new FailResponse("Failed to get branch"));
         response.setStatus(500);
+    }
+
+
+    @Override
+    protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        User user = (User) req.getSession().getAttribute("loggedInAs");
+        if (user == null || user.getId() <= 0) {
+            resp.sendRedirect("/login.jsp");
+            return;
+        }
+        if (!user.getPermission().contains(2)) {
+            resp.setStatus(401);
+        }
+        String uid = req.getParameter("branchId");
+        int uId = -1;
+        try {
+            uId = Integer.parseInt(uid);
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp.setStatus(400);
+        }
+        branchDb.deleteBranch(uId);
     }
 
 }

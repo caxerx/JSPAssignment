@@ -8,7 +8,7 @@
 >
     <v-list>
 
-        <v-list-tile>
+        <v-list-tile @click="href('/admin/dashboard?action=dashboard')">
             <v-list-tile-action>
                 <v-icon>dashboard</v-icon>
             </v-list-tile-action>
@@ -16,15 +16,15 @@
         </v-list-tile>
 
 
-        <v-list-tile>
+        <v-list-tile @click="href('/admin/dashboard?action=history')">
             <v-list-tile-action>
-                <v-icon>assignment_ind</v-icon>
+                <v-icon>history</v-icon>
             </v-list-tile-action>
-            <v-list-tile-title>Roles</v-list-tile-title>
+            <v-list-tile-title>Search History</v-list-tile-title>
         </v-list-tile>
 
 
-        <v-list-tile @click="">
+        <v-list-tile @click="href('/admin/dashboard?action=userlist')">
             <v-list-tile-action>
                 <v-icon>
                     perm_identity

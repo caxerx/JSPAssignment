@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BranchDb {
+    private DistrictDb districtDb;
     private DatabaseConnectionPool pool;
     private RestaurantDb restaurantDb;
     private static BranchDb instance;
@@ -28,6 +29,12 @@ public class BranchDb {
         return restaurantDb;
     }
 
+    private DistrictDb getDistrictDb() {
+        if (districtDb == null) {
+            districtDb = DistrictDb.getInstance(pool);
+        }
+        return districtDb;
+    }
 
     private BranchDb(DatabaseConnectionPool pool) {
         this.pool = pool;
@@ -71,6 +78,57 @@ public class BranchDb {
         return 1;
     }
 
+    public int update(int userId, int restaurantId, int bid, AddBranchRequest request) {
+        Restaurant restaurant = getRestaurantDb().findById(restaurantId);
+        if (restaurant == null) {
+            return -1;
+        }
+        if (restaurant.getOwner() != userId) {
+            return -2;
+        }
+        try (Connection conn = pool.getConnection()) {
+            int id = -1;
+            try (PreparedStatement stmt = conn.prepareStatement("UPDATE Branch SET `name` = ?, districtId = ?, address = ?, telephone = ?, openTime = ? WHERE id = ?")) {
+                stmt.setString(1, request.getBranchName());
+                stmt.setInt(2, request.getDistrict());
+                stmt.setString(3, request.getAddress());
+                stmt.setString(4, request.getPhoneNumber());
+                stmt.setString(5, request.getOpenTime() + " - " + request.getCloseTime());
+                stmt.setInt(6, bid);
+                int rs = stmt.executeUpdate();
+            }
+
+            removeDeliveryDistrict(conn, bid);
+
+            for (int tag : request.getDeliveryDistrict()) {
+                insertDeliveryDistrict(conn, request.getBranchId(), tag);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return -3;
+        }
+        return 1;
+    }
+
+
+    public void removeDeliveryDistrict(Connection conn, int branchId) throws SQLException {
+        try (PreparedStatement stmt = conn.prepareStatement(SqlBuilder.deleteByColumn("BranchDeliveryDistrict", "branchId"))) {
+            stmt.setInt(1, branchId);
+            stmt.executeUpdate();
+        }
+    }
+
+
+    public void deleteBranch(int branchId) {
+        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.deleteByColumn("Branch", "id"))) {
+            stmt.setInt(1, branchId);
+            stmt.execute();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
     public void insertDeliveryDistrict(Connection conn, int branchId, int districtId) throws SQLException {
         try (PreparedStatement stmt = conn.prepareStatement(SqlBuilder.insert("BranchDeliveryDistrict", 2))) {
@@ -111,8 +169,8 @@ public class BranchDb {
                     String address = rs.getString("address");
                     String telephone = rs.getString("telephone");
                     String openTime = rs.getString("openTime");
-
                     Branch branch = new Branch(id, restaurantId, districtId, name, address, telephone, openTime);
+                    branch.setDistrict(districtDb.findById(branch.getDistrictId()));
                     branch.setDeliveryDistrict(getDeliveryDistrict(id));
                     branches.add(branch);
                 }
@@ -137,8 +195,8 @@ public class BranchDb {
                     String address = rs.getString("address");
                     String telephone = rs.getString("telephone");
                     String openTime = rs.getString("openTime");
-
                     Branch branch = new Branch(id, restaurantId, districtId, name, address, telephone, openTime);
+                    branch.setDistrict(getDistrictDb().findById(branch.getDistrictId()));
                     branch.setDeliveryDistrict(getDeliveryDistrict(id));
                     branches.add(branch);
                 }
@@ -163,8 +221,8 @@ public class BranchDb {
                     String address = rs.getString("address");
                     String telephone = rs.getString("telephone");
                     String openTime = rs.getString("openTime");
-
                     Branch branch = new Branch(id, restaurantId, districtId, name, address, telephone, openTime);
+                    branch.setDistrict(districtDb.findById(branch.getDistrictId()));
                     branch.setDeliveryDistrict(getDeliveryDistrict(id));
                     return branch;
                 }

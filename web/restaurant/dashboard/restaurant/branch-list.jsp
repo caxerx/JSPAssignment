@@ -32,13 +32,13 @@
             </v-flex>
             <v-flex>
                 <v-layout align-center justify-end fill-height>
-                    <v-btn flat>
+                    <v-btn flat @click="href('/restaurant/dashboard?action=editbranch&rid='+rid+'&bid='+branch.id)">
                         Edit
                     </v-btn>
                     <v-menu offset-y nudge-left="105">
                         <v-icon slot="activator">arrow_drop_down</v-icon>
                         <v-list dense>
-                            <v-list-tile @click="">
+                            <v-list-tile @click="deleteBranch(branch.id)">
                                 <v-list-tile-action>
                                     <v-icon color="error">delete</v-icon>
                                 </v-list-tile-action>

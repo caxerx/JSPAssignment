@@ -11,8 +11,17 @@ public class AddUserRequest implements Serializable {
     private String email;
     private long dob;
     private int role;
+    private int id;
 
     public AddUserRequest() {
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getEmail() {

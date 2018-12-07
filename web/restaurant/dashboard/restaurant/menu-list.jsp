@@ -62,17 +62,17 @@
             </v-flex>
             <v-flex>
                 <v-layout align-center justify-end fill-height>
-                    <v-btn icon>
+                    <v-btn icon @click="toggleVisibility(menu.id)">
                         <v-icon v-if="menu.showMenu">visibility_off</v-icon>
                         <v-icon v-else>visibility</v-icon>
                     </v-btn>
-                    <v-btn flat>
+                    <v-btn flat @click="href('/restaurant/dashboard?action=editmenu&rid='+rid+'&mid='+menu.id)">
                         Edit
                     </v-btn>
                     <v-menu offset-y nudge-left="105">
                         <v-icon slot="activator">arrow_drop_down</v-icon>
                         <v-list dense>
-                            <v-list-tile @click="">
+                            <v-list-tile @click="deleteMenu(menu.id)">
                                 <v-list-tile-action>
                                     <v-icon color="error">delete</v-icon>
                                 </v-list-tile-action>

@@ -13,14 +13,37 @@ import java.util.List;
 public class MenuDb {
     private DatabaseConnectionPool pool;
     private RestaurantDb restaurantDb;
+    private static MenuDb instance;
 
-    public MenuDb(DatabaseConnectionPool pool) {
+    private MenuDb(DatabaseConnectionPool pool) {
         this.pool = pool;
-        restaurantDb = RestaurantDb.getInstance(pool);
+    }
+
+    public static MenuDb getInstance(DatabaseConnectionPool pool) {
+        if (instance == null) {
+            instance = new MenuDb(pool);
+        }
+        return instance;
+    }
+
+    public RestaurantDb getRestaurantDb() {
+        if (restaurantDb == null) {
+            restaurantDb = RestaurantDb.getInstance(pool);
+        }
+        return restaurantDb;
+    }
+
+    public void toggleVisibility(int menuId) {
+        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement("UPDATE `Menu` SET `showMenu` = !`showMenu` WHERE `Menu`.`id` = ?")) {
+            stmt.setInt(1, menuId);
+            stmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public int insert(int userId, int restaurantId, AddMenuRequest request) {
-        Restaurant restaurant = restaurantDb.findById(restaurantId);
+        Restaurant restaurant = getRestaurantDb().findById(restaurantId);
         if (restaurant == null) {
             return -1;
         }
@@ -61,6 +84,44 @@ public class MenuDb {
     }
 
 
+    public int update(int userId, int restaurantId, AddMenuRequest request) {
+        Restaurant restaurant = getRestaurantDb().findById(restaurantId);
+        if (restaurant == null) {
+            return -1;
+        }
+        if (restaurant.getOwner() != userId) {
+            return -2;
+        }
+        try (Connection conn = pool.getConnection()) {
+            try (PreparedStatement stmt = conn.prepareStatement("UPDATE Menu SET title = ?, startTime = ?, endTime = ?, showMenu = ? WHERE id = ?")) {
+                stmt.setString(1, request.getMenuName());
+                stmt.setDate(2, new Date(request.getStartDate()));
+                stmt.setDate(3, new Date(request.getEndDate()));
+                stmt.setBoolean(4, request.isShowMenu());
+                stmt.setInt(5, request.getMenuId());
+                int rs = stmt.executeUpdate();
+            }
+
+            int id = request.getMenuId();
+
+            clearTag(conn, id);
+            for (int tag : request.getTags()) {
+                insertTag(conn, id, tag);
+            }
+
+            clearImage(conn, id);
+            for (int image : request.getImages()) {
+                insertImage(conn, id, image);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return -3;
+        }
+        return 1;
+    }
+
+
     public void insertTag(Connection conn, int menuId, int tagId) throws SQLException {
         try (PreparedStatement stmt = conn.prepareStatement(SqlBuilder.insert("MenuTag", 2))) {
             stmt.setInt(1, menuId);
@@ -75,6 +136,32 @@ public class MenuDb {
             stmt.setInt(1, menuId);
             stmt.setInt(2, imageId);
             stmt.executeUpdate();
+        }
+    }
+
+
+    public void clearTag(Connection conn, int menuId) throws SQLException {
+        try (PreparedStatement stmt = conn.prepareStatement(SqlBuilder.deleteByColumn("MenuTag", "menuId"))) {
+            stmt.setInt(1, menuId);
+            stmt.executeUpdate();
+        }
+    }
+
+
+    public void clearImage(Connection conn, int menuId) throws SQLException {
+        try (PreparedStatement stmt = conn.prepareStatement(SqlBuilder.deleteByColumn("MenuImage", "menuId"))) {
+            stmt.setInt(1, menuId);
+            stmt.executeUpdate();
+        }
+    }
+
+
+    public void deleteMenu(int menuId) {
+        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.deleteByColumn("Menu", "id"))) {
+            stmt.setInt(1, menuId);
+            stmt.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -141,6 +228,7 @@ public class MenuDb {
     }
 
     public List<Menu> findRestaurantMenu(int restaurantId) {
+
         try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.queryByColumn("Menu", "restaurantId"))) {
             stmt.setInt(1, restaurantId);
             try (ResultSet rs = stmt.executeQuery()) {

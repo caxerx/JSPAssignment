@@ -5,6 +5,7 @@ import java.util.ArrayList;
 
 public class AddBranchRequest implements Serializable {
     private int restaurantId;
+    private int branchId;
     private int district;
     private String branchName;
     private String phoneNumber;
@@ -25,6 +26,14 @@ public class AddBranchRequest implements Serializable {
         this.closeTime = closeTime;
         this.address = address;
         this.deliveryDistrict = deliveryDistrict;
+    }
+
+    public int getBranchId() {
+        return branchId;
+    }
+
+    public void setBranchId(int branchId) {
+        this.branchId = branchId;
     }
 
     public int getDistrict() {

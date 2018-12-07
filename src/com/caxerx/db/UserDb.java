@@ -23,6 +23,47 @@ public class UserDb {
         this.pool = pool;
     }
 
+    public void replacePermission(int role, ArrayList<Integer> permissions) {
+        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.deleteByColumn("RolePermission", "roleId"))) {
+            stmt.setInt(1, role);
+            stmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        for (int i : permissions) {
+            addPermission(role, i);
+        }
+    }
+
+
+    public void addPermission(int role, int permission) {
+        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.insert("RolePermission", 3))) {
+            stmt.setInt(1, 0);
+            stmt.setInt(2, role);
+            stmt.setInt(3, permission);
+            stmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public List<Integer> getAllPermission(int roleId) {
+        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.queryByColumn("RolePermission", "roleId"))) {
+            stmt.setInt(1, roleId);
+            List<Integer> perms = new ArrayList<>();
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    perms.add(rs.getInt("permission"));
+                }
+                return perms;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public List<Role> getAllRole() {
         try (Connection connection = pool.getConnection(); PreparedStatement statement = connection.prepareStatement(SqlBuilder.queryAll("Role"))) {
             try (ResultSet rs = statement.executeQuery()) {
@@ -30,7 +71,9 @@ public class UserDb {
                 while (rs.next()) {
                     int id = rs.getInt("id");
                     String name = rs.getString("name");
-                    roles.add(new Role(id, name));
+                    Role role = new Role(id, name);
+                    role.setPermission(getAllPermission(id));
+                    roles.add(role);
                 }
                 return roles;
             }
@@ -71,14 +114,13 @@ public class UserDb {
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
                     String username = resultSet.getString("username");
-                    String password = resultSet.getString("password");
                     String firstName = resultSet.getString("firstName");
                     String lastName = resultSet.getString("lastName");
                     String email = resultSet.getString("email");
                     Date dateOfBirth = resultSet.getDate("dateOfBirth");
                     int type = resultSet.getInt("type");
 
-                    User user = new User(id, username, password, firstName, lastName, email, dateOfBirth, type);
+                    User user = new User(id, username, null, firstName, lastName, email, dateOfBirth, type);
 
                     return user;
                 }
@@ -87,6 +129,44 @@ public class UserDb {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public void update(AddUserRequest request) {
+        boolean changePw = false;
+        if (request.getPassword() != null && !request.getPassword().equalsIgnoreCase("")) {
+            changePw = true;
+        }
+        String sql = "";
+        if (changePw) {
+            sql = SqlBuilder.updateByColumn("User", "username", "password", "firstName", "lastName", "email", "dateOfBirth", "type");
+        } else {
+            sql = SqlBuilder.updateByColumn("User", "username", "firstName", "lastName", "email", "dateOfBirth", "type");
+        }
+        sql += " WHERE `User`.`id` = ?";
+        try (Connection connection = pool.getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
+            if (changePw) {
+                statement.setString(1, request.getUsername());
+                statement.setString(2, request.getPassword());
+                statement.setString(3, request.getFirstName());
+                statement.setString(4, request.getLastName());
+                statement.setString(5, request.getEmail());
+                statement.setDate(6, new java.sql.Date(request.getDob()));
+                statement.setInt(7, request.getRole());
+                statement.setInt(8, request.getId());
+            } else {
+                statement.setString(1, request.getUsername());
+                statement.setString(2, request.getFirstName());
+                statement.setString(3, request.getLastName());
+                statement.setString(4, request.getEmail());
+                statement.setDate(5, new java.sql.Date(request.getDob()));
+                statement.setInt(6, request.getRole());
+                statement.setInt(7, request.getId());
+            }
+
+            statement.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public void insert(AddUserRequest user) {
@@ -120,12 +200,55 @@ public class UserDb {
                     String obj_email = resultSet.getString("email");
                     Date obj_dateOfBirth = resultSet.getDate("dateOfBirth");
                     int obj_type = resultSet.getInt("type");
-                    return new User(obj_id, obj_username, obj_password, obj_firstName, obj_lastName, obj_email, obj_dateOfBirth, obj_type);
+                    User user = new User(obj_id, obj_username, obj_password, obj_firstName, obj_lastName, obj_email, obj_dateOfBirth, obj_type);
+                    user.setPermission(getPermissions(user.getId()));
+                    return user;
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public List<Integer> getPermissions(int userId) {
+        try (Connection connection = pool.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT * FROM `User` LEFT JOIN `Role` ON User.type = Role.id LEFT JOIN rolepermission ON Role.id = rolepermission.roleId WHERE User.id = ?")) {
+            statement.setInt(1, userId);
+            try (ResultSet rs = statement.executeQuery()) {
+                List<Integer> prm = new ArrayList<>();
+                while (rs.next()) {
+                    prm.add(rs.getInt("permission"));
+                }
+                return prm;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public boolean hasPermission(int userId, int permission) {
+        try (Connection connection = pool.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT * FROM `User` LEFT JOIN `Role` ON User.type = Role.id LEFT JOIN `rolepermission` ON Role.id = rolepermission.roleId WHERE User.id = ? AND rolepermission.permission IS NOT NULL")) {
+            statement.setInt(1, userId);
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    if (rs.getInt("permission") == permission) {
+                        return true;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public void delete(int userId) {
+        try (Connection conn = pool.getConnection(); PreparedStatement stmt = conn.prepareStatement(SqlBuilder.deleteByColumn("User", "id"))) {
+            stmt.setInt(1, userId);
+            stmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }

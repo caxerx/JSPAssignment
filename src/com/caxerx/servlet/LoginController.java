@@ -52,7 +52,7 @@ public class LoginController extends HttpServlet {
 
     private void doLogin(HttpServletRequest request, HttpServletResponse response) throws IOException {
         PrintWriter out = response.getWriter();
-        if (!request.getContentType().toLowerCase().contains("application/json")) {
+        if (request.getContentType() == null || !request.getContentType().toLowerCase().contains("application/json")) {
             response.setStatus(400);
             out.print(new FailResponse("Unknown content type"));
             return;

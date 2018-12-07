@@ -84,6 +84,9 @@
 <script>
     new Vue({
         el: '#app',
+        created() {
+            this.$vuetify.theme.primary = '#ff8c00';
+        },
         data: () => ({
             formValid: true,
             loginFailed: -1,
@@ -98,7 +101,7 @@
             }
         }),
         methods: {
-            href(loc){
+            href(loc) {
                 window.location.href = loc
             },
             login() {
